@@ -409,9 +409,22 @@ function vLista(){const l=monthTx(S.month).sort((a,b)=>skey(b).localeCompare(ske
   return monthNav()+`<div class="score"><div><span>GASTO</span><b class="down">${fmt(out)}</b></div><div><span>RECEBIDO</span><b class="up">${fmt(inn)}</b></div><div><span>BALANÇO</span><b>${inn-out<0?"−":""}${fmt(Math.abs(inn-out))}</b></div></div>`
   +(l.length?[...g].map(([d,ts])=>`<div class="day"><span>${dayLabel(d)}</span><span>${(n=>(n<0?"−":"+")+fmt(Math.abs(n)))(ts.reduce((s,t)=>s+(t.type==="out"?-t.amt:t.amt),0))}</span></div>`+ts.map(rowTx).join("")).join(""):`<div class="empty"><span class="px">INSERT COIN</span>Nada em ${monthLabel(S.month)}.</div>`)}
 function vSaldo(){const list=accs(),tot=list.reduce((s,a)=>s+balance(a.id),0);
-  return`<div class="board hiscore"><div class="px">HI-SCORE · PATRIMÓNIO</div><b>${fmt(tot)}</b></div><h2>Contas</h2>
+  return`<div class="board hiscore"><div class="px">HI-SCORE · PATRIMÓNIO</div><b>${fmt(tot)}</b></div>
+  <button class="save" style="margin-top:14px;background:var(--coin);color:var(--edge)" data-act="transfer">⇄ PASSAR DINHEIRO</button><h2>Contas</h2>
   ${list.map(a=>`<button class="acc" data-act="acc" data-id="${esc(a.id)}"><i style="background:${esc(a.color||"#888")}"></i><span>${esc(a.name)}</span><b class="${balance(a.id)<0?"down":""}">${fmt(balance(a.id))}</b></button>`).join("")}
-  <div class="hint">Toca numa conta para acertar com o saldo real do banco.</div>`}
+  <div class="hint">Toca numa conta para acertar com o saldo real do banco.</div>
+  ${(tl=>tl.length?`<h2>Transferências</h2>${tl.map(t=>`<button class="row" data-act="tredit" data-id="${esc(t.id)}"><span class="ic">⇄</span><span style="min-width:0"><span class="t1">${esc(accName(t.acc))} → ${esc(accName(t.to))}</span><span class="t2">${dayLabel(t.date)}${t.time?" · "+esc(t.time):""}${t.place&&t.place!=="Transferência"?" · "+esc(t.place):""}</span></span><span class="amt">${fmt(t.amt)}</span></button>`).join("")}`:"")(txs().filter(t=>t.type==="transfer"&&!t.review).sort((a,b)=>skey(b).localeCompare(skey(a))).slice(0,8))}`}
+function trForm(){const f=S.tf,list=accs();const chip=(k,a)=>`<button class="chip${f[k]===a.id?" on":""}" data-act="tfpick" data-k="${k}" data-v="${esc(a.id)}">${esc(a.name)}</button>`;
+  openSheet(`<div class="shead"><b>⇄ ${f.id?"EDITAR TRANSFERÊNCIA":"PASSAR DINHEIRO"}</b><button class="x" data-act="close">X</button></div>
+  <input class="amount" id="t_amt" inputmode="decimal" placeholder="0,00 €" value="${esc(toInput(f.amt))}" autocomplete="off" aria-label="Valor">
+  <div><span class="lbl">Sai de</span><div class="chips">${list.map(a=>chip("from",a)).join("")}</div></div>
+  <div><span class="lbl">Entra em</span><div class="chips">${list.map(a=>chip("to",a)).join("")}</div></div>
+  <div><span class="lbl">Nota (opcional)</span><input id="t_note" value="${esc(f.note||"")}" placeholder="Ex.: poupança, pagar cartão…" autocomplete="off"></div>
+  <div class="two"><div><span class="lbl">Dia</span><input type="date" id="t_date" value="${esc(f.date)}"></div><div><span class="lbl">Hora</span><input type="time" id="t_time" value="${esc(f.time||"")}"></div></div>
+  <button class="save" data-act="tfsave">${f.id?"GUARDAR":"PASSAR"}</button>
+  ${f.id?`<button class="del" data-act="tfdel">${f.arm?"TOCA OUTRA VEZ PARA APAGAR":"APAGAR"}</button>`:""}
+  <div class="note">Não conta como compra nem como recebimento: só muda o saldo das duas contas.</div>`);if(!f.id)setTimeout(()=>$("#t_amt")?.focus(),80)}
+function trRead(){const f=S.tf;f.amt=parseAmt($("#t_amt").value);f.note=$("#t_note").value.trim();f.date=$("#t_date").value||today();f.time=$("#t_time").value||""}
 function vGraf(){const l=monthTx(S.month);const by=new Map();let out=0;for(const t of l)if(t.type==="out"){by.set(t.cat,(by.get(t.cat)||0)+t.amt);out+=t.amt}
   const rows=[...by].sort((a,b)=>b[1]-a[1]),max=Math.max(1,...rows.map(r=>r[1]));
   const six=[];for(let i=5;i>=0;i--){const m=addMonths(S.month,-i),ts=monthTx(m);six.push({m,o:ts.filter(t=>t.type==="out").reduce((s,t)=>s+t.amt,0),n:ts.filter(t=>t.type==="in").reduce((s,t)=>s+t.amt,0)})}
@@ -426,7 +439,7 @@ function renderSetup(){$("#hdr").hidden=true;$("#ground").hidden=true;
 
 /* ============ folhas ============ */
 function openSheet(h){$("#sheetin").innerHTML=h;$("#sheet").hidden=false;$("#scrim").hidden=false;document.body.style.overflow="hidden"}
-function closeSheet(){$("#sheet").hidden=true;$("#scrim").hidden=true;document.body.style.overflow="";S.form=null}
+function closeSheet(){$("#sheet").hidden=true;$("#scrim").hidden=true;document.body.style.overflow="";S.form=null;S.tf=null}
 const lastOf=type=>flows().filter(t=>t.type===type&&t.src==="manual").sort((a,b)=>b.created-a.created)[0];
 function openAdd(type){const l=lastOf(type);S.form={id:null,type,amt:0,place:"",cat:"",method:l?.method||(type==="in"?"Transferência":"Apple Pay"),acc:l?.acc||accs()[0]?.id||"",date:today(),time:nowTime()};form()}
 function form(){const f=S.form,places=[...new Set(flows().filter(t=>t.type===f.type).map(t=>t.place).filter(Boolean))].slice(0,300);
@@ -492,6 +505,13 @@ document.addEventListener("click",async e=>{
     <input class="amount" id="lim" inputmode="decimal" value="${esc(toInput(weekLimit()))}"><button class="save" data-act="setlimit">GUARDAR</button><button class="del" style="border-color:var(--edge);color:var(--ink)" data-act="autolimit">USAR SUGESTÃO AUTOMÁTICA</button>`)}
   else if(a==="setlimit"){const v=parseAmt($("#lim").value);if(!v)return;const g=game();g.weekLimit=v;saveGame(g);closeSheet()}
   else if(a==="autolimit"){const g=game();g.weekLimit=0;saveGame(g);closeSheet()}
+  else if(a==="transfer"){const l=accs();S.tf={id:null,amt:0,from:l[0]?.id||"",to:"",note:"",date:today(),time:nowTime()};trForm()}
+  else if(a==="tredit"){const t=S.tx.get(el.dataset.id);if(!t)return;S.tf={id:t.id,amt:t.amt,from:t.acc,to:t.to,note:t.place==="Transferência"?"":t.place,date:t.date,time:t.time,created:t.created};trForm()}
+  else if(a==="tfpick"){S.tf[el.dataset.k]=el.dataset.v;el.parentElement.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c===el))}
+  else if(a==="tfsave"){trRead();const f=S.tf;if(!f.amt){toast("FALTA O VALOR");return}if(!f.from||!f.to){toast("ESCOLHE AS DUAS CONTAS");return}if(f.from===f.to){toast("AS CONTAS TÊM DE SER DIFERENTES");return}
+    const t={id:f.id||genId("x"),type:"transfer",amt:f.amt,place:f.note||"Transferência",cat:"",acc:f.from,to:f.to,method:"Transferência",date:f.date,time:f.time,src:"manual",review:false,created:f.created||Date.now()};
+    closeSheet();S.tf=null;send({a:"put",row:toRow(t)});coinSnd();toast(`⇄ ${fmt(t.amt)} · ${accName(t.acc).toUpperCase()} → ${accName(t.to).toUpperCase()}`)}
+  else if(a==="tfdel"){if(!S.tf.arm){trRead();S.tf.arm=true;trForm();return}const id=S.tf.id;closeSheet();S.tf=null;send({a:"del",id});toast("APAGADO")}
   else if(a==="prev"){S.month=addMonths(S.month,-1);render()}else if(a==="next"){S.month=addMonths(S.month,1);render()}
   else if(a==="acc"){const c=S.accounts.get(el.dataset.id);openSheet(`<div class="shead"><b>${esc(c.name)}</b><button class="x" data-act="close">X</button></div>
     <div class="board"><span class="lbl">Saldo na Carteira</span><div style="font-size:40px">${fmt(balance(c.id))}</div></div><div><span class="lbl">Saldo real no banco</span><input id="real" inputmode="decimal" placeholder="0,00 €"></div>
@@ -504,7 +524,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("change",e=>{if(e.target.id==="f_place"&&S.form&&!S.form.id){const n=norm(e.target.value);const hit=flows().filter(t=>t.type===S.form.type&&norm(t.place)===n).sort((a,b)=>b.created-a.created)[0];
   if(hit){S.form.cat=hit.cat;S.form.acc=hit.acc||S.form.acc;S.form.method=hit.method||S.form.method}else if(!S.form.cat)S.form.cat=guessCat(e.target.value,S.form.type);
   document.querySelectorAll("#sheet .chip[data-k]").forEach(c=>c.classList.toggle("on",S.form[c.dataset.k]===c.dataset.v))}}); // atualiza sem redesenhar (não perde o toque em GUARDAR)
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet();if(e.key==="Enter"&&e.target.id==="qtext"){e.preventDefault();quick(null)}else if(e.key==="Enter"&&S.form&&e.target.tagName==="INPUT"){e.preventDefault();save(null)}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet();if(e.key==="Enter"&&e.target.id==="qtext"){e.preventDefault();quick(null)}else if(e.key==="Enter"&&S.tf&&e.target.tagName==="INPUT"&&!$("#sheet").hidden){e.preventDefault();document.querySelector('[data-act="tfsave"]')?.click()}else if(e.key==="Enter"&&S.form&&e.target.tagName==="INPUT"){e.preventDefault();save(null)}});
 $("#scrim").addEventListener("click",closeSheet);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.api)refresh(false)});
 window.addEventListener("online",flush);
