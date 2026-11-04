@@ -96,7 +96,7 @@ header{min-width:0;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;pa
 .lim .track{height:16px;background:#fff;border:3px solid var(--edge)}.lim .track i{display:block;height:100%}
 .lim .sub{font-size:17px;color:var(--dim)}
 .cmp{font-size:17px;color:var(--dim);margin-top:2px}
-.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.tools .btn{min-height:44px;font-size:7.5px;padding:0 4px;line-height:1.5}
+.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.tools .btn{min-height:44px;font-size:7.5px;padding:0 4px;line-height:1.5}
 .favs{display:flex;gap:7px;overflow-x:auto;padding:4px 2px 8px;margin-top:8px;scrollbar-width:none}.favs::-webkit-scrollbar{display:none}
 .fav{flex:none;font-size:20px;padding:6px 10px;background:#fff;border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85);white-space:nowrap}.fav b{font-weight:400;color:var(--red)}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.cal .wd{font-family:var(--pixel);font-size:7px;text-align:center;color:var(--dim);padding:2px 0}
@@ -113,6 +113,8 @@ header{min-width:0;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;pa
 .trip{background:linear-gradient(#EAF4FF,#CFE6FF)}
 .rgrid{display:grid;grid-template-columns:1fr 1fr 110px;gap:6px;align-items:center}.rgrid select,.rgrid input{font-size:19px;padding:6px}
 .off{opacity:.45}
+.swatch{width:34px;height:34px;border:3px solid var(--edge);box-shadow:2px 2px 0 rgba(27,27,58,.85)}.swatch.on{outline:3px solid var(--blue);outline-offset:2px}
+.emo{width:90px;text-align:center;font-size:30px}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.split div{background:var(--paper);border:3px solid var(--edge);padding:10px;box-shadow:3px 3px 0 rgba(27,27,58,.85);min-width:0}.split span{display:block;font-family:var(--pixel);font-size:7.5px;color:var(--dim);margin-bottom:6px}.split b{font-size:28px;font-weight:400;white-space:nowrap}
 .inv{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;width:100%;text-align:left;background:var(--paper);border:4px solid var(--edge);box-shadow:4px 4px 0 rgba(27,27,58,.85);padding:12px;margin-bottom:10px}
 .inv .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.inv .top span{font-size:23px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inv .top b{font-size:32px;font-weight:400;white-space:nowrap}
@@ -289,7 +291,7 @@ async function refresh(manual){
 
 /* ============ saldos e categorias ============ */
 const accs=()=>[...S.accounts.values()].filter(a=>!a.hidden).sort((a,b)=>a.order-b.order);
-const cats=k=>[...S.cats.values()].filter(c=>!k||c.kind===k).sort((a,b)=>a.order-b.order);
+const cats=k=>[...S.cats.values()].filter(c=>c.kind!=="x"&&(!k||c.kind===k)).sort((a,b)=>a.order-b.order);
 const cat=id=>S.cats.get(id)||{name:"Outros",emoji:"•",color:"#999"};
 const accName=id=>S.accounts.get(id)?.name||"—";
 const txs=()=>[...S.tx.values()];
@@ -428,10 +430,10 @@ function vJogo(){
   <div class="quick"><input id="qtext" placeholder="Ex.: 3,20 café bpi" autocomplete="off" enterkeyhint="send" aria-label="Registo rápido"><button class="btn" data-act="quick">OK</button></div>
   <div class="hint">Escreve ou dita: valor + sítio + conta. Guarda logo.</div>
   ${(f=>f.length?`<div class="favs" aria-label="Favoritos">${f.map(x=>`<button class="fav" data-act="fav" data-id="${esc(x.id)}">${esc(cat(x.cat).emoji||"•")} ${esc(x.place)} <b>${fmt(x.amt)}</b></button>`).join("")}</div>`:"")(favs())}
-  <div class="tools"><button class="btn alt" data-act="trips">✈️ VIAGENS</button><button class="btn alt" data-act="recurs">🔁 FIXOS</button><button class="btn alt" data-act="limits">🎯 LIMITES</button></div>
+  <div class="tools"><button class="btn alt" data-act="trips">✈️ VIAGENS</button><button class="btn alt" data-act="recurs">🔁 FIXOS</button><button class="btn alt" data-act="limits">🎯 LIMITES</button><button class="btn alt" data-act="cats">🏷️ CATEGORIAS</button></div>
   ${payCard()}${tripCard()}
   ${p.length?`<h2>Moedas por apanhar <small>${p.length} · +5 XP cada</small></h2>${p.map(rowAuto).join("")}`:""}
-  ${exp.length?`<h2>À espera este mês</h2>${exp.map(r=>`<div class="row" style="grid-template-columns:1fr auto"><span style="min-width:0"><span class="t1">${esc(r.nome)}</span><span class="t2">${r.variavel==="1"?"valor variável · cerca de ":""}${fmt(Math.round(Number(r.valor)*100))} · ${esc(accName(r.conta))}</span></span><span style="display:flex;gap:6px"><button class="btn small alt" data-act="skiprec" data-id="${esc(r.id)}">SALTAR</button><button class="btn small green" data-act="confrec" data-id="${esc(r.id)}">${r.tipo==="in"?"RECEBI":"PAGUEI"}</button></span></div>`).join("")}`:""}
+  ${exp.length||autoDue().length?`<h2>À espera este mês</h2>${autoDue().map(x=>`<div class="row" style="grid-template-columns:1fr auto"><span style="min-width:0"><span class="t1">${esc(x.a.nome)}</span><span class="t2">calculado · ${fmt(x.v)} · ${esc(accName(x.a.conta))}</span></span><span style="display:flex;gap:6px"><button class="btn small alt" data-act="autoskip" data-id="${esc(x.a.id)}">SALTAR</button><button class="btn small green" data-act="autoconf" data-id="${esc(x.a.id)}">RECEBI</button></span></div>`).join("")}${exp.map(r=>`<div class="row" style="grid-template-columns:1fr auto"><span style="min-width:0"><span class="t1">${esc(r.nome)}</span><span class="t2">${r.variavel==="1"?"valor variável · cerca de ":""}${fmt(Math.round(Number(r.valor)*100))} · ${esc(accName(r.conta))}</span></span><span style="display:flex;gap:6px"><button class="btn small alt" data-act="skiprec" data-id="${esc(r.id)}">SALTAR</button><button class="btn small green" data-act="confrec" data-id="${esc(r.id)}">${r.tipo==="in"?"RECEBI":"PAGUEI"}</button></span></div>`).join("")}`:""}
   <h2>Missões de hoje <small>${done.size}/3</small></h2>
   ${todayQuests().map(k=>`<div class="quest${done.has(k)?" done":""}"><span class="ck">${done.has(k)?"✓":""}</span><span class="qt">${esc(QUESTS[k].t)}</span><span class="rw">+${QUESTS[k].xp}</span></div>`).join("")}
   ${!g.days[t]?`<button class="btn alt" style="width:100%;margin-top:6px" data-act="zero">🧊 HOJE NÃO GASTEI NADA · +25 XP</button>`:""}
@@ -513,7 +515,7 @@ function vGraf(){const l=monthTx(S.month);const by=new Map();let out=0;for(const
   const mx=Math.max(1,...six.flatMap(x=>[x.o,x.n]));
   const lb=limBars(S.month),cur=S.month===ymOf(today()),pmo=addMonths(S.month,-1),avg3=id=>Math.round([1,2,3].reduce((s,i)=>s+catSpent(id,addMonths(S.month,-i)),0)/3);
   const wym=S.month<ymOf(today())?S.month:addMonths(ymOf(today()),-1);
-  return monthNav()+(cur?forecastBoard():"")+`<h2>Calendário <small>toca num dia</small></h2>`+calBoard(S.month)+`<h2>Limites do mês <small><button data-act="limits" style="text-decoration:underline">${lb?"mudar":"definir"}</button></small></h2>`+(lb?`<div class="board">${lb}</div>`:`<div class="board" style="display:grid;gap:10px"><div class="note" style="margin:0">Ainda não tens limites. Define quanto queres gastar por mês em restaurantes, compras, lazer…</div><button class="btn" data-act="limits">DEFINIR LIMITES</button></div>`)+`<h2>Gastos por categoria</h2>`+(rows.length?`<div class="board bars">${rows.map(([id,v])=>{const c=cat(id);return`<div class="bar"><div class="lab"><span>${esc(c.emoji)} ${esc(c.name)}</span><span>${fmt(v)} <span class="dim">${Math.round(v/out*100)}%</span></span></div><div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${id==="apostas"?"var(--red)":esc(c.color||"#999")}"></div></div>${cmpLine(v,catSpent(id,pmo),avg3(id),pmo)}</div>`}).join("")}</div>`:`<div class="empty"><span class="px">NADA AQUI</span>Sem compras neste mês.</div>`)
+  return monthNav()+(cur?forecastBoard():"")+`<h2>Calendário <small>toca num dia</small></h2>`+calBoard(S.month)+`<h2>Limites do mês <small><button data-act="limits" style="text-decoration:underline">${lb?"mudar":"definir"}</button></small></h2>`+(lb?`<div class="board">${lb}</div>`:`<div class="board" style="display:grid;gap:10px"><div class="note" style="margin:0">Ainda não tens limites. Define quanto queres gastar por mês em restaurantes, compras, lazer…</div><button class="btn" data-act="limits">DEFINIR LIMITES</button></div>`)+`<h2>Gastos por categoria <small><button data-act="cats" style="text-decoration:underline">gerir</button></small></h2>`+(rows.length?`<div class="board bars">${rows.map(([id,v])=>{const c=cat(id);return`<div class="bar"><div class="lab"><span>${esc(c.emoji)} ${esc(c.name)}</span><span>${fmt(v)} <span class="dim">${Math.round(v/out*100)}%</span></span></div><div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${id==="apostas"?"var(--red)":esc(c.color||"#999")}"></div></div>${cmpLine(v,catSpent(id,pmo),avg3(id),pmo)}</div>`}).join("")}</div>`:`<div class="empty"><span class="px">NADA AQUI</span>Sem compras neste mês.</div>`)
   +`<h2>Últimos 6 meses</h2><div class="board"><div class="cols">${six.map(x=>`<div class="col"><i style="height:${(x.o/mx*100).toFixed(1)}%;background:var(--red)"></i><i style="height:${(x.n/mx*100).toFixed(1)}%;background:var(--green)"></i></div>`).join("")}</div>
    <div class="collab">${six.map(x=>`<span>${MES3[+x.m.slice(5)-1]}</span>`).join("")}</div><div class="legend"><span><i style="background:var(--red)"></i>Gasto</span><span><i style="background:var(--green)"></i>Recebido</span></div></div>`
   +`<h2>Fixos e subscrições <small><button data-act="recurs" style="text-decoration:underline">gerir</button></small></h2>`+fixedBoard()
@@ -528,7 +530,7 @@ const invOf=id=>(S.config.invest||[]).find(x=>x.acc===id);
 function pxAt(y,date){const h=(S.prices||{})[y];if(!h)return null;if(!date||date>=today())return h.p||null;const ks=Object.keys(h.d||{}).sort();let v=null;for(const k of ks){if(k<=date)v=h.d[k];else break}return v??(ks.length?h.d[ks[0]]:h.p)}
 function idx(inv,date){let I=inv.cash||0;for(const l of inv.legs||[]){const p=pxAt(l.y,date);if(p==null)return null;I+=l.w*(l.b?p/l.b:p)}return I}
 function invVal(id){const inv=invOf(id);if(!inv||inv.U==null)return null;const In=idx(inv);if(!In)return null;let U=inv.U,cost=Math.round(inv.refCost*100);
-  for(const t of S.tx.values()){if(t.type!=="transfer"||(t.created||0)<=inv.refAt)continue;const s=t.to===id?1:t.acc===id?-1:0;if(!s)continue;const I=idx(inv,t.date)||In;
+  for(const t of S.tx.values()){if((t.created||0)<=inv.refAt||t.review)continue;const s=t.type==="transfer"?(t.to===id?1:t.acc===id?-1:0):t.type==="in"&&t.acc===id?1:t.type==="out"&&t.acc===id?-1:0;if(!s)continue;const I=idx(inv,t.date)||In;
     if(s<0){const val=U*In*100;cost-=val>0?Math.round(cost*Math.min(1,t.amt/val)):t.amt}else cost+=t.amt;U+=s*(t.amt/100)/I}
   const v=Math.round(U*In*100);return{v,cost,gain:v-cost,pct:cost?(v-cost)/cost:0,U,In}}
 function invSheet(id){const a=S.accounts.get(id),inv=invOf(id),iv=invVal(id);
@@ -541,6 +543,47 @@ function invSheet(id){const a=S.accounts.get(id),inv=invOf(id),iv=invVal(id);
   <div class="two"><div><span class="lbl">Valor hoje</span><input id="iv_v" inputmode="decimal" placeholder="${esc(toInput(iv.v))}"></div><div><span class="lbl">Ganho total (opcional)</span><input id="iv_g" inputmode="decimal" placeholder="ex.: +15,94 ou -1,05"></div></div>
   <button class="save" data-act="invfix" data-id="${esc(id)}">ACERTAR</button>
   <div class="note">Só precisas disto se o valor ficar diferente do banco. A partir daqui volta a atualizar sozinho.</div>`)}
+
+/* ============ calculados (juros e saveback da Trade Republic) ============ */
+const isInvAcc=id=>{const a=S.accounts.get(id);return!!a&&(a.kind==="investimento"||!!invOf(id))};
+const autos=()=>S.config.auto||[];
+function ledgerAt(id,date){const a=S.accounts.get(id);if(!a)return 0;let b=a.opening;for(const t of S.tx.values()){if(t.date>date||!affects(t,a))continue;
+  if(t.type==="out"&&t.acc===id)b-=t.amt;else if(t.type==="in"&&t.acc===id)b+=t.amt;else if(t.type==="transfer"){if(t.acc===id)b-=t.amt;if(t.to===id)b+=t.amt}else if(t.type==="adjust"&&t.acc===id)b+=t.amt}return b}
+function autoCalc(a,ym){const pm=addMonths(ym,-1),end=`${pm}-${pad(daysIn(pm))}`;
+  if(a.calc==="juros"){const b=Math.max(0,ledgerAt(a.conta,end));return{v:Math.round(b*(a.taxa||0)/100/12),how:`${String(a.taxa).replace(".",",")}% ao ano sobre ${fmt(b)} (saldo a ${end.slice(8)}/${end.slice(5,7)}) ÷ 12`}}
+  if(a.calc==="saveback"){const sp=flows().filter(t=>t.type==="out"&&!t.review&&t.acc===a.de&&ymOf(t.date)===pm&&t.method!=="Transferência"&&t.method!=="MB WAY"&&!isBet(t)).reduce((s,t)=>s+t.amt,0);let v=Math.round(sp*(a.pct||0)/100);if(a.max)v=Math.min(v,Math.round(a.max*100));
+    return{v,how:`${String(a.pct).replace(".",",")}% de ${fmt(sp)} pagos com o cartão ${accName(a.de)} em ${MES[+pm.slice(5)-1]}, sem apostas${a.max?` (máx. ${fmt0(a.max*100)})`:""}`}}
+  return{v:0,how:""}}
+function autoDue(){const td=today(),ym=ymOf(td),g=game(),sk=(g.autoSkip||{})[ym]||{};
+  return autos().filter(a=>a.ativo!==false&&+td.slice(8)>=Math.min(a.dia||1,daysIn(ym))&&!sk[a.id]&&!S.tx.has(`a_${a.id}_${ym}`)).map(a=>({a,...autoCalc(a,ym)})).filter(x=>x.v>0)}
+function autoSec(){const l=autos();if(!l.length)return"";
+  return`<span class="lbl" style="margin:6px 0 -6px">⚙️ Calculados sozinhos</span>`+l.map(a=>{const c=autoCalc(a,ymOf(today()));return`<button class="row${a.ativo===false?" off":""}" style="grid-template-columns:40px 1fr auto" data-act="autoedit" data-id="${esc(a.id)}"><span class="ic">${a.calc==="juros"?"📈":"💸"}</span><span style="min-width:0"><span class="t1">${esc(a.nome)}</span><span class="t2">${a.ativo===false?"DESATIVADO · ":""}dia ${a.dia} · ${a.calc==="juros"?`${String(a.taxa).replace(".",",")}% ao ano`:`${String(a.pct).replace(".",",")}% das compras`} · ${esc(accName(a.conta))}</span></span><span class="amt up">≈${fmt(c.v)}</span></button>`}).join("")}
+function autoForm(){const a=S.af,j=a.calc==="juros";openSheet(`<div class="shead"><b>${j?"📈":"💸"} ${esc(a.nome).toUpperCase()}</b><button class="x" data-act="close">X</button></div>
+  <div class="note" style="margin:0">${j?"A Trade Republic paga juros sobre o dinheiro parado na conta. A app calcula o valor do mês e põe-no em \"À espera\" no dia certo para confirmares.":"O Saveback devolve uma percentagem do que pagas com o cartão e investe-a sozinho. A app calcula o valor do mês anterior e põe-no em \"À espera\" para confirmares."}</div>
+  <div class="two"><div><span class="lbl">${j?"Taxa anual %":"Percentagem %"}</span><input id="af_p" inputmode="decimal" value="${esc(String(j?a.taxa:a.pct).replace(".",","))}"></div><div><span class="lbl">Dia do mês</span><input id="af_d" type="number" min="1" max="31" value="${esc(a.dia)}"></div></div>
+  ${j?"":`<div><span class="lbl">Máximo por mês € (vazio = sem máximo)</span><input id="af_m" inputmode="decimal" value="${a.max?esc(String(a.max).replace(".",",")):""}"></div>`}
+  <div class="note" style="margin:0">Este mês: ${esc(autoCalc(a,ymOf(today())).how)} = <b>${fmt(autoCalc(a,ymOf(today())).v)}</b></div>
+  <button class="save" data-act="afsave">GUARDAR</button><button class="btn alt" style="width:100%" data-act="aftoggle">${a.ativo===false?"▶ ATIVAR":"⏸ DESATIVAR"}</button>`)}
+function afRead(){const a=S.af,v=parseFloat(($("#af_p").value||"0").replace(",","."))||0;if(a.calc==="juros")a.taxa=v;else a.pct=v;a.dia=Math.min(31,Math.max(1,parseInt($("#af_d").value,10)||2));if($("#af_m")){const m=parseFloat(($("#af_m").value||"").replace(",","."));a.max=m>0?m:0}}
+function afSave(){const a=S.af;send({a:"config",config:{...S.config,auto:autos().map(x=>x.id===a.id?{...a}:x)}})}
+
+/* ============ categorias ============ */
+const PALETTE=["#6CCB98","#F2B45A","#86A8F0","#A78BFA","#F28DB2","#E9A16B","#F06F9F","#5EC4D6","#9AA5B8","#7FB4F0","#9BD06B","#E57373","#FF4D5E","#B58CFF","#2EB85C","#8A93A2"];
+function catsSheet(){const used=id=>txs().filter(t=>t.cat===id).length,sec=(k,t)=>`<span class="lbl" style="margin:6px 0 -6px">${t}</span>`+cats(k).map(c=>`<button class="row" style="grid-template-columns:40px 1fr auto" data-act="catedit" data-id="${esc(c.id)}"><span class="ic" style="background:${esc(c.color||"#fff")}">${esc(c.emoji||"•")}</span><span style="min-width:0"><span class="t1">${esc(c.name)}</span><span class="t2">${used(c.id)} movimentos${c.budget?" · limite "+fmt0(c.budget):""}</span></span><span class="dim">✎</span></button>`).join("");
+  openSheet(`<div class="shead"><b>🏷️ CATEGORIAS</b><button class="x" data-act="close">X</button></div>
+  <div class="two"><button class="save" style="padding:14px" data-act="catnew" data-k="out">+ GASTO</button><button class="save" style="padding:14px;background:var(--coin);color:var(--edge)" data-act="catnew" data-k="in">+ ENTRADA</button></div>
+  ${sec("out","Gastos")}${sec("in","Entradas")}`)}
+function catForm(){const c=S.cf;const others=cats(c.kind).filter(x=>x.id!==c.id);
+  openSheet(`<div class="shead"><b>🏷️ ${c.isNew?"NOVA CATEGORIA":"EDITAR CATEGORIA"}</b><button class="x" data-act="close">X</button></div>
+  <div style="display:grid;grid-template-columns:90px 1fr;gap:10px"><div><span class="lbl">Emoji</span><input id="cf_e" class="emo" value="${esc(c.emoji||"")}" maxlength="4" placeholder="🙂"></div><div><span class="lbl">Nome</span><input id="cf_n" value="${esc(c.name||"")}" placeholder="Ex.: Gasolina, Ginásio, Aulas…" autocomplete="off"></div></div>
+  <div><span class="lbl">Tipo</span><div class="chips"><button class="chip${c.kind==="out"?" on":""}" data-act="cfkind" data-v="out">− Gasto</button><button class="chip${c.kind==="in"?" on":""}" data-act="cfkind" data-v="in">+ Entrada</button></div></div>
+  <div><span class="lbl">Cor</span><div class="chips">${PALETTE.map(p=>`<button class="swatch${c.color===p?" on":""}" style="background:${p}" data-act="cfcolor" data-v="${p}" aria-label="cor ${p}"></button>`).join("")}</div></div>
+  <button class="save" data-act="cfsave">GUARDAR</button>
+  ${c.isNew?"":`<h2 style="margin:8px 0 0;color:var(--ink);text-shadow:none">Apagar categoria</h2><div class="note" style="margin:0">Os ${txs().filter(t=>t.cat===c.id).length} movimentos desta categoria passam para:</div>
+  <select id="cf_to">${others.map(o=>`<option value="${esc(o.id)}"${o.id===(c.kind==="in"?"outras-entradas":"outros")?" selected":""}>${esc(o.emoji+" "+o.name)}</option>`).join("")}</select>
+  <button class="del" data-act="cfdel">${c.arm?"TOCA OUTRA VEZ PARA APAGAR":"APAGAR CATEGORIA"}</button>`}`)}
+function cfRead(){const c=S.cf;c.name=$("#cf_n").value.trim();c.emoji=$("#cf_e").value.trim()||"•";if($("#cf_to"))c.to=$("#cf_to").value}
+const catRow=c=>({id:c.id,nome:c.name,emoji:c.emoji,cor:c.color,tipo:c.kind,limite:(c.budget||0)/100,ordem:c.order||0});
 
 /* ============ favoritos ============ */
 function favs(){const from=addDays(today(),-90),m=new Map();
@@ -592,19 +635,19 @@ function nextOcc(dia){const ym=ymOf(today());let d=`${ym}-${pad(Math.min(dia,day
 function fixedBoard(){const out=recs().filter(r=>r.ativo==="1"&&r.tipo==="out").sort((a,b)=>recMonthly(b)-recMonthly(a)),tot=out.reduce((s,r)=>s+recMonthly(r),0);
   if(!out.length)return`<div class="board"><div class="note" style="margin:0">Sem saídas fixas. Toca em gerir para adicionar.</div></div>`;
   return`<div class="board"><div class="kv">${out.map(r=>`<span>${esc(r.nome)} <span class="dim">· dia ${esc(r.dia)}</span></span><b>${fmt(recMonthly(r))}</b>`).join("")}<span class="tot">Por mês</span><b class="tot down">${fmt(tot)}</b><span>Por ano</span><b class="down">${fmt(tot*12)}</b></div></div>`}
-function recursSheet(){const all=recs(),sec=(k,t)=>{const l=all.filter(r=>r.tipo===k).sort((a,b)=>(b.ativo==="1")-(a.ativo==="1")||Number(a.dia)-Number(b.dia));if(!l.length)return"";
-    return`<span class="lbl" style="margin:6px 0 -6px">${t}</span>`+l.map(r=>`<button class="row${r.ativo==="1"?"":" off"}" style="grid-template-columns:40px 1fr auto" data-act="recedit" data-id="${esc(r.id)}"><span class="ic">${k==="in"?"💰":k==="transfer"?"⇄":esc(cat(r.categoria).emoji||"🔁")}</span><span style="min-width:0"><span class="t1">${esc(r.nome)}</span><span class="t2">${r.ativo==="1"?"":"DESATIVADA · "}${r.flex==="1"?"dia varia":"dia "+esc(r.dia)}${r.variavel==="1"?" · valor varia":""} · ${esc(accName(r.conta))}${k==="transfer"?" → "+esc(accName(r.para)):""}</span></span><span class="amt ${k==="out"?"down":k==="in"?"up":""}">${fmt(recMonthly(r))}</span></button>`).join("")};
+function recursSheet(){const all=recs(),sec=(k,t)=>{const l=all.filter(r=>k==="inv"?r.tipo==="transfer"&&isInvAcc(r.para):k==="transfer"?r.tipo==="transfer"&&!isInvAcc(r.para):r.tipo===k).sort((a,b)=>(b.ativo==="1")-(a.ativo==="1")||Number(a.dia)-Number(b.dia));if(!l.length)return"";
+    return`<span class="lbl" style="margin:6px 0 -6px">${t}</span>`+l.map(r=>`<button class="row${r.ativo==="1"?"":" off"}" style="grid-template-columns:40px 1fr auto" data-act="recedit" data-id="${esc(r.id)}"><span class="ic">${k==="in"?"💰":k==="inv"?"📈":k==="transfer"?"⇄":esc(cat(r.categoria).emoji||"🔁")}</span><span style="min-width:0"><span class="t1">${esc(r.nome)}</span><span class="t2">${r.ativo==="1"?"":"DESATIVADA · "}${r.flex==="1"?"dia varia":"dia "+esc(r.dia)}${r.variavel==="1"?" · valor varia":""} · ${esc(accName(r.conta))}${k==="transfer"||k==="inv"?" → "+esc(accName(r.para)):""}</span></span><span class="amt ${k==="out"?"down":k==="in"?"up":""}">${fmt(recMonthly(r))}</span></button>`).join("")};
   const subs=all.filter(r=>r.ativo==="1"&&r.tipo==="out").reduce((s,r)=>s+recMonthly(r),0);
   openSheet(`<div class="shead"><b>🔁 FIXOS E SUBSCRIÇÕES</b><button class="x" data-act="close">X</button></div>
   <div class="score"><div><span>SAÍDAS/MÊS</span><b class="down">${fmt(subs)}</b></div><div><span>POR ANO</span><b class="down">${fmt0(subs*12)}</b></div><div><span>ATIVOS</span><b>${all.filter(r=>r.ativo==="1").length}</b></div></div>
-  ${sec("out","Subscrições e saídas")}${sec("in","Entradas")}${sec("transfer","Transferências")}
+  ${sec("out","Subscrições e saídas")}${sec("in","Entradas")}${sec("inv","📈 Investimentos")}${sec("transfer","Transferências")}${autoSec()}
   <button class="save" data-act="recnew">+ NOVA SUBSCRIÇÃO OU FIXO</button>
   <div class="note">Dia e valor certos: aparece sozinho em "Moedas por apanhar" no dia. Se o dia ou o valor variar, aparece em "À espera este mês" para confirmares.</div>`)}
-function recForm(){const r=S.rf,tp=r.tipo,chip=(k,v,l)=>`<button class="chip${String(r[k]||"")===v?" on":""}" data-act="rfpick" data-k="${k}" data-v="${esc(v)}">${l}</button>`;
+function recForm(){const r=S.rf,tp=r.tipo,chip=(k,v,l)=>`<button class="chip${String(r[k]||"")===v&&!(k==="tipo"&&v==="transfer"&&isInvAcc(r.para))?" on":""}" data-act="rfpick" data-k="${k}" data-v="${esc(v)}">${l}</button>`;
   openSheet(`<div class="shead"><b>🔁 ${r.isNew?"NOVO FIXO":"EDITAR"}</b><button class="x" data-act="close">X</button></div>
   <input class="amount" id="rf_v" inputmode="decimal" placeholder="0,00 €" value="${r.valor?esc(String(Number(r.valor).toFixed(2)).replace(".",",")):""}" aria-label="Valor">
   <div><span class="lbl">Nome</span><input id="rf_n" value="${esc(r.nome||"")}" placeholder="Ex.: Netflix, ginásio, Petrolapa…" autocomplete="off"></div>
-  <div><span class="lbl">Tipo</span><div class="chips">${chip("tipo","out","− Saída")}${chip("tipo","in","+ Entrada")}${chip("tipo","transfer","⇄ Transferência")}</div></div>
+  <div><span class="lbl">Tipo</span><div class="chips">${chip("tipo","out","− Saída")}${chip("tipo","in","+ Entrada")}${chip("tipo","transfer","⇄ Transferência")}<button class="chip${tp==="transfer"&&isInvAcc(r.para)?" on":""}" data-act="rfinv">📈 Investir</button></div></div>
   <div class="two"><div><span class="lbl">Dia do mês</span><input id="rf_d" type="number" min="1" max="31" inputmode="numeric" value="${esc(r.dia||"")}"></div><div><span class="lbl">Próxima vez</span><input id="rf_p" type="date" value="${esc(r.proximo||"")}"></div></div>
   <div><span class="lbl">Dia</span><div class="chips">${chip("flex","","Dia certo")}${chip("flex","1","Dia varia")}</div></div>
   <div><span class="lbl">Valor</span><div class="chips">${chip("variavel","","Valor certo")}${chip("variavel","1","Valor varia")}</div></div>
@@ -724,7 +767,7 @@ function rewardSheet(d,r){fanfare();S._party=Date.now();const bi=betInfo();openS
 
 /* ============ folhas ============ */
 function openSheet(h){$("#sheetin").innerHTML=h;$("#sheet").hidden=false;$("#scrim").hidden=false;document.body.style.overflow="hidden"}
-function closeSheet(){$("#sheet").hidden=true;$("#scrim").hidden=true;document.body.style.overflow="";S.form=null;S.tf=null;S.rf=null;S.trip=null;S.wr=null;clearInterval(S.sosT)}
+function closeSheet(){$("#sheet").hidden=true;$("#scrim").hidden=true;document.body.style.overflow="";S.form=null;S.tf=null;S.rf=null;S.af=null;S.cf=null;S.trip=null;S.wr=null;clearInterval(S.sosT)}
 const lastOf=type=>flows().filter(t=>t.type===type&&t.src==="manual").sort((a,b)=>b.created-a.created)[0];
 function openAdd(type){const l=lastOf(type);S.form={id:null,type,amt:0,place:"",cat:"",method:l?.method||(type==="in"?"Transferência":"Apple Pay"),acc:l?.acc||accs()[0]?.id||"",date:today(),time:nowTime(),notes:""};form()}
 function form(){const f=S.form,places=[...new Set(flows().filter(t=>t.type===f.type).map(t=>t.place).filter(Boolean))].slice(0,300);
@@ -832,6 +875,24 @@ document.addEventListener("click",async e=>{
   else if(a==="patterns")patternsSheet();
   else if(a==="rewards")rewardsSheet();
   else if(a==="rwsave"){const rw={};document.querySelectorAll("[data-rw]").forEach(i=>{if(i.value.trim())rw[i.dataset.rw]=i.value.trim()});send({a:"config",config:{...S.config,rewards:rw}});closeSheet();toast("🎁 PRÉMIOS GUARDADOS")}
+  else if(a==="autoconf"){const x=autoDue().find(y=>y.a.id===el.dataset.id);if(!x)return;const ym=ymOf(today());
+    S.form={id:`a_${x.a.id}_${ym}`,recur:"auto",type:"in",amt:x.v,place:x.a.nome,cat:S.cats.has(x.a.categoria)?x.a.categoria:"outras-entradas",method:"Transferência",acc:x.a.conta,date:`${ym}-${pad(Math.min(x.a.dia||1,daysIn(ym)))}`,time:"",notes:"Calculado: "+x.how};form()}
+  else if(a==="autoskip"){const g=game(),ym=ymOf(today());g.autoSkip={[ym]:{...((g.autoSkip||{})[ym]||{}),[el.dataset.id]:1}};saveGame(g);toast("SALTADO ESTE MÊS")}
+  else if(a==="autoedit"){const x=autos().find(y=>y.id===el.dataset.id);if(!x)return;S.af={...x};autoForm()}
+  else if(a==="afsave"){afRead();afSave();recursSheet();toast("⚙️ GUARDADO")}
+  else if(a==="aftoggle"){afRead();S.af.ativo=S.af.ativo===false;afSave();recursSheet();toast(S.af.ativo?"▶ ATIVADO":"⏸ DESATIVADO")}
+  else if(a==="rfinv"){recRead();const r=S.rf;r.tipo="transfer";if(!isInvAcc(r.para))r.para=accs().find(x=>isInvAcc(x.id))?.id||"";r.categoria="";recForm()}
+  else if(a==="cats")catsSheet();
+  else if(a==="catnew"){S.cf={isNew:true,id:"",name:"",emoji:"",color:PALETTE[Math.floor(Math.random()*PALETTE.length)],kind:el.dataset.k,budget:0,order:99};catForm()}
+  else if(a==="catedit"){const c=S.cats.get(el.dataset.id);if(!c)return;S.cf={...c};catForm()}
+  else if(a==="cfkind"){cfRead();S.cf.kind=el.dataset.v;catForm()}
+  else if(a==="cfcolor"){cfRead();S.cf.color=el.dataset.v;catForm()}
+  else if(a==="cfsave"){cfRead();const c=S.cf;if(!c.name){toast("FALTA O NOME");return}if(c.isNew){c.id=norm(c.name).replace(/ /g,"-").slice(0,20)||"cat";if(S.cats.has(c.id))c.id+="-"+Math.random().toString(36).slice(2,5);c.order=Math.max(0,...[...S.cats.values()].map(x=>x.order||0))+1}
+    send({a:"cat",row:catRow(c)});catsSheet();toast("🏷️ "+c.name.toUpperCase()+" GUARDADA")}
+  else if(a==="cfdel"){if(!S.cf.arm){cfRead();S.cf.arm=true;catForm();return}cfRead();const c=S.cf,to=c.to;if(!to){toast("ESCOLHE PARA ONDE VÃO OS MOVIMENTOS");return}
+    const moved=txs().filter(t=>t.cat===c.id);for(const t of moved)send({a:"put",row:toRow({...t,cat:to})});
+    for(const r of recs())if(r.categoria===c.id)send({a:"recur",row:{...r,categoria:to}});
+    send({a:"cat",row:catRow({...c,kind:"x",budget:0})});catsSheet();toast(`🗑️ APAGADA · ${moved.length} MOVIMENTOS PASSARAM PARA ${cat(to).name.toUpperCase()}`)}
   else if(a==="lclear"){S.q="";S.fAcc="";S.fCat="";S.fTrip="";render()}
   else if(a==="limits")limitsSheet();
   else if(a==="limsave"){let n=0;document.querySelectorAll("[data-lim]").forEach(i=>{const c=S.cats.get(i.dataset.lim);if(!c)return;const v=parseAmt(i.value);if(v===c.budget)return;n++;
