@@ -119,6 +119,10 @@ header{min-width:0;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;pa
 .mon{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}.mon div{background:var(--paper);border:3px solid var(--edge);padding:9px 6px;box-shadow:3px 3px 0 rgba(27,27,58,.85);min-width:0;text-align:center}.mon span{display:block;font-family:var(--pixel);font-size:7px;color:var(--dim);margin-bottom:6px}.mon b{font-size:23px;font-weight:400;white-space:nowrap}
 .perday{margin-top:12px}.perday .row1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.perday .row1 span{font-family:var(--pixel);font-size:8px;line-height:1.5}.perday .row1 b{font-size:36px;font-weight:400;white-space:nowrap}.perday .sub{font-size:18px;color:var(--dim);margin-top:4px}
 .invl{display:flex;justify-content:space-between;gap:10px;margin-top:10px;padding:8px 12px;background:var(--paper);border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85);font-size:19px;width:100%;text-align:left}
+.goal2{margin-bottom:10px}.goal2 .gt{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.goal2 .gt b{font-size:24px;font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal2 .gt span{font-size:20px;white-space:nowrap}.goal2 .sub{font-size:18px;color:var(--dim);margin-top:4px}.goal2 .gb{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:10px}.goal2 .gb button{font-family:var(--pixel);font-size:8px;padding:10px 6px;background:#fff;border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85)}
+.betl{display:block;width:100%;text-align:left;margin-top:10px;padding:10px 12px;background:var(--paper);border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85)}.betl .bt{font-family:var(--pixel);font-size:8px;display:flex;justify-content:space-between}.betl .bv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;font-size:19px}.betl .bv b{display:block;font-size:24px;font-weight:400;white-space:nowrap}
+.bh{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:4px 8px;font-size:18px;align-items:baseline}.bh .h{font-family:var(--pixel);font-size:7px;color:var(--dim)}.bh span{white-space:nowrap;text-align:right}.bh span:nth-child(4n+1){text-align:left}
+button.bar{display:block;width:100%;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit}
 .wallet{margin:14px 0;background:#FFF6D6}.wallet .wtop{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;padding:0;text-align:left}.wallet .wtop span{font-family:var(--pixel);font-size:9px;line-height:1.5}.wallet .wtop b{font-size:40px;font-weight:400;white-space:nowrap}.wallet .wbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.wallet .wbtn button{font-family:var(--pixel);font-size:9px;line-height:1.4;padding:12px 6px;background:#fff;border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85);min-width:0}.wallet .wlast{margin-top:10px;font-size:19px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.split div{background:var(--paper);border:3px solid var(--edge);padding:10px;box-shadow:3px 3px 0 rgba(27,27,58,.85);min-width:0}.split span{display:block;font-family:var(--pixel);font-size:7.5px;color:var(--dim);margin-bottom:6px}.split b{font-size:28px;font-weight:400;white-space:nowrap}
 .inv{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;width:100%;text-align:left;background:var(--paper);border:4px solid var(--edge);box-shadow:4px 4px 0 rgba(27,27,58,.85);padding:12px;margin-bottom:10px}
@@ -418,6 +422,40 @@ function line(){const g=game(),bi=betInfo(),p=pending().length,st=streakOf(g);
   if(!g.days[today()])return st?`${st} dias seguidos a registar. Não percas o fogo hoje! 🔥`:"Regista o primeiro movimento de hoje e começa uma sequência.";
   if(bi.clean>0)return`${bi.clean} dia${bi.clean>1?"s":""} sem apostas = ${fmt0(bi.saved)} que ficaram contigo. Bora para o ${bi.clean+1}!`;
   return"Dia registado. Cada dia sem apostas enfraquece o Rei Betano.";}
+/* ===== OBJETIVOS (reserva na app: o dinheiro fica na conta mas sai do disponível) ===== */
+const goals=()=>(S.config.goals||[]).slice().sort((a,b)=>(a.ate||"9").localeCompare(b.ate||"9"));
+const reservedTotal=()=>goals().reduce((s,g)=>s+(g.g||0),0);
+function goalPlan(g){const td=today(),left=Math.max(0,(g.meta||0)-(g.g||0)),dl=g.ate?Math.max(1,diffDays(td,g.ate)):0;
+  return{left,dl,perWeek:dl?Math.ceil(left/dl*7):0,perDay:dl?left/dl:0,done:g.meta>0&&left===0,late:g.ate&&g.ate<td&&left>0}}
+function goalsSec(){const l=goals();
+  return`<h2>🎯 Objetivos <small><button data-act="goalnew" style="text-decoration:underline">+ novo</button></small></h2>`+(l.length?l.map(g=>{const pl=goalPlan(g),p=g.meta?Math.min(1,(g.g||0)/g.meta):0;
+    return`<div class="board goal2"><div class="gt"><b>${esc(g.e||"🎯")} ${esc(g.n)}</b><span>${fmt0(g.g||0)} / ${fmt0(g.meta||0)}</span></div>
+    <div class="track" style="margin-top:8px"><i style="width:${(p*100).toFixed(1)}%;background:var(--green)"></i></div>
+    <div class="sub">${pl.done?"🎉 Objetivo cumprido!":pl.late?`⏰ Passou a data · faltam ${fmt0(pl.left)}`:g.ate?`Até ${dayLabel(g.ate).toLowerCase()} · faltam ${pl.dl} dias · põe de lado <b>${fmt0(pl.perWeek)}/semana</b>`:`Faltam ${fmt0(pl.left)}`}</div>
+    <div class="gb"><button data-act="goalmv" data-k="add" data-id="${esc(g.id)}">➕ GUARDAR</button><button data-act="goalmv" data-k="sub" data-id="${esc(g.id)}">↩ TIRAR</button><button data-act="goaledit" data-id="${esc(g.id)}" aria-label="Editar">✏️</button></div></div>`}).join("")
+    :`<button class="btn alt" style="width:100%" data-act="goalnew">🎯 CRIAR OBJETIVO</button>`)}
+function goalForm(){const g=S.goal;openSheet(`<div class="shead"><b>🎯 ${g.id?"EDITAR OBJETIVO":"NOVO OBJETIVO"}</b><button class="x" data-act="close">X</button></div>
+  <div class="two" style="grid-template-columns:80px 1fr"><div><span class="lbl">Emoji</span><input id="gl_e" value="${esc(g.e||"")}" placeholder="🗾" autocomplete="off" style="text-align:center"></div><div><span class="lbl">Nome</span><input id="gl_n" value="${esc(g.n||"")}" placeholder="Ex.: Japão 2027" autocomplete="off"></div></div>
+  <div><span class="lbl">Quanto queres juntar</span><input class="amount" style="font-size:40px" id="gl_m" inputmode="decimal" placeholder="0 €" value="${esc(toInput(g.meta))}" autocomplete="off"></div>
+  <div class="two"><div><span class="lbl">Até quando</span><input type="date" id="gl_a" value="${esc(g.ate||"")}"></div><div><span class="lbl">Já guardado</span><input id="gl_g" inputmode="decimal" placeholder="0 €" value="${esc(toInput(g.g))}" autocomplete="off"></div></div>
+  <div class="note">O dinheiro fica nas tuas contas, mas a app tira-o do saldo disponível e do "podes gastar por dia".</div>
+  <button class="save" data-act="goalsave">GUARDAR</button>${g.id?`<button class="del" data-act="goaldel">${g.arm?"TOCA OUTRA VEZ PARA APAGAR":"APAGAR OBJETIVO"}</button>`:""}`)}
+function goalRead(){const g=S.goal;g.e=$("#gl_e").value.trim();g.n=$("#gl_n").value.trim();g.meta=parseAmt($("#gl_m").value);g.ate=$("#gl_a").value||"";g.g=parseAmt($("#gl_g").value)}
+function goalMoveSheet(){const m=S.gmv,g=goals().find(x=>x.id===m.id);if(!g)return;openSheet(`<div class="shead"><b>${m.k==="add"?"➕ GUARDAR":"↩ TIRAR"} · ${esc(g.n)}</b><button class="x" data-act="close">X</button></div>
+  <input class="amount" id="gm_v" inputmode="decimal" placeholder="0,00 €" autocomplete="off" aria-label="Valor">
+  <div class="note" style="margin:0">${m.k==="add"?`Já tens ${fmt(g.g||0)} de ${fmt(g.meta||0)}. Este valor passa a estar reservado e sai do saldo disponível.`:`Tens ${fmt(g.g||0)} reservado. O que tirares volta para o saldo disponível.`}</div>
+  <button class="save" data-act="goalmvsave">${m.k==="add"?"GUARDAR":"TIRAR"}</button>`);setTimeout(()=>$("#gm_v")?.focus(),80)}
+function saveGoals(l){send({a:"config",config:{...S.config,goals:l}})}
+/* ===== APOSTAS: depositado vs levantado ===== */
+function betSum(from,to){const l=flows().filter(t=>!t.review&&t.date>=from&&t.date<=to);const d=l.filter(t=>t.type==="out"&&t.cat==="apostas").reduce((s,t)=>s+t.amt,0),w=l.filter(t=>t.type==="in"&&t.cat==="apostas-ganhos").reduce((s,t)=>s+t.amt,0);return{d,w,r:w-d}}
+function betLine(){const ym=ymOf(today()),b=betSum(ym+"-01",ym+"-31");if(!b.d&&!b.w)return"";
+  return`<button class="betl" data-tab="jogo"><span class="bt"><span>🎰 APOSTAS EM ${MES[+ym.slice(5)-1].toUpperCase()}</span><span>ver ►</span></span><span class="bv"><span>Depositado<b class="down">${fmt0(b.d)}</b></span><span>Levantado<b class="up">${fmt0(b.w)}</b></span><span>Resultado<b class="${b.r>=0?"up":"down"}">${b.r>=0?"+":"−"}${fmt0(Math.abs(b.r))}</b></span></span></button>`}
+function betHistory(){const td=today(),ym=ymOf(td),rows=[];
+  for(let i=0;i<6;i++){const m=addMonths(ym,-i);rows.push({l:`${MES3[+m.slice(5)-1]} ${m.slice(2,4)}`,...betSum(m+"-01",m+"-31")})}
+  const wk=[],dow=(new Date(td+"T12:00:00").getDay()+6)%7;let mon=addDays(td,-dow);for(let i=0;i<8;i++){const a=addDays(mon,-7*i),b=addDays(a,6);wk.push({l:i===0?"esta sem.":`${+a.slice(8)}/${+a.slice(5,7)}`,...betSum(a,b)})}
+  const tbl=r=>`<div class="bh"><span class="h">${""}</span><span class="h">DEPOSIT.</span><span class="h">LEVANT.</span><span class="h">RESULT.</span>${r.map(x=>`<span>${esc(x.l)}</span><span class="down">${x.d?fmt0(x.d):"—"}</span><span class="up">${x.w?fmt0(x.w):"—"}</span><span class="${x.r>=0?"up":"down"}">${x.d||x.w?(x.r>=0?"+":"−")+fmt0(Math.abs(x.r)):"—"}</span>`).join("")}</div>`;
+  const tot=rows.reduce((s,x)=>({d:s.d+x.d,w:s.w+x.w}),{d:0,w:0});
+  return`<h2>Apostas <small>dep. vs levant.</small></h2><div class="board" style="display:grid;gap:12px"><span class="lbl" style="margin:0">Por mês</span>${tbl(rows)}<div class="note" style="margin:0">6 meses: depositaste ${fmt0(tot.d)} e levantaste ${fmt0(tot.w)} · resultado ${tot.w-tot.d>=0?"+":"−"}${fmt0(Math.abs(tot.w-tot.d))}.</div><span class="lbl" style="margin:0">Por semana</span>${tbl(wk)}</div>`}
 /* ===== INÍCIO: o dinheiro primeiro ===== */
 const availAccs=()=>accs().filter(a=>!isInv(a));
 const availTotal=()=>availAccs().reduce((s,a)=>s+balance(a.id),0);
@@ -428,19 +466,21 @@ function nextPayInfo(){const t=today(),av=new Set(availAccs().map(a=>a.id)),rs=[
   const due=rs.filter(r=>r.proximo>=t&&r.proximo<until&&av.has(r.conta)&&(r.tipo==="out"||(r.tipo==="transfer"&&!av.has(r.para))));
   const dueAmt=due.reduce((s,r)=>s+Math.round(Number(r.valor)*100),0);
   const days=Math.max(1,Math.round((new Date(until+"T12:00:00")-new Date(t+"T12:00:00"))/864e5));
-  const free=availTotal()-dueAmt;return{pay,until,due,dueAmt,days,free,perDay:Math.floor(free/days)}}
-function vInicio(){const t=today(),ym=ymOf(t),tot=availTotal(),mn=monthNet(ym),np=nextPayInfo(),p=pending();
+  const gneed=goals().reduce((s,g)=>{const pl=goalPlan(g);return s+(pl.dl?Math.round(pl.perDay*Math.min(days,pl.dl)):0)},0);
+  const free=availTotal()-reservedTotal()-dueAmt-gneed;return{pay,until,due,dueAmt,gneed,days,free,perDay:Math.floor(free/days)}}
+function vInicio(){const t=today(),ym=ymOf(t),rsv=reservedTotal(),tot=availTotal()-rsv,mn=monthNet(ym),np=nextPayInfo(),p=pending();
   const exp=[...S.recur.values()].filter(r=>r.ativo==="1"&&(r.flex==="1"||r.variavel==="1")&&r.proximo&&ymOf(r.proximo)<=ym);
   const recent=flows().filter(x=>!x.review).sort((a,b)=>skey(b).localeCompare(skey(a))).slice(0,5);
   const inv=accs().filter(isInv),it=inv.reduce((s,a)=>s+balance(a.id),0),g=inv.map(a=>invVal(a.id)).filter(Boolean),gain=g.reduce((s,x)=>s+x.gain,0);
   const sg=v=>(v>=0?"+":"−")+fmt(Math.abs(v)),dn=d=>`${+d.slice(8)}/${+d.slice(5,7)}`;
   return`<div class="board"><button class="home" data-tab="saldo" aria-label="Ver contas"><span class="px">SALDO DISPONIVEL</span><b class="bigv${tot<0?" down":""}">${fmt(tot)}</b>
-    <span class="accl">${availAccs().filter(a=>Math.abs(balance(a.id))>=100).map(a=>`<span>${esc(a.name)} <b>${fmt(balance(a.id))}</b></span>`).join("")}</span></button>
+    <span class="accl">${availAccs().filter(a=>Math.abs(balance(a.id))>=100).map(a=>`<span>${esc(a.name)} <b>${fmt(balance(a.id))}</b></span>`).join("")}${rsv?`<span>🎯 Reservado <b>−${fmt(rsv)}</b></span>`:""}</span></button>
     <div class="mon"><div><span>ENTROU</span><b class="up">${fmt0(mn.i)}</b></div><div><span>SAIU</span><b class="down">${fmt0(mn.o)}</b></div><div><span>${mn.d>=0?"GANHASTE":"PERDESTE"}</span><b class="${mn.d>=0?"up":"down"}">${mn.d>=0?"+":"−"}${fmt0(Math.abs(mn.d))}</b></div></div>
     <div class="note" style="margin:8px 0 0;text-align:center">Este mês (${esc(MES[+ym.slice(5)-1])}), sem contar transferências entre contas.</div></div>
   <div class="board perday"><div class="row1"><span>PODES GASTAR<br>POR DIA</span><b class="${np.perDay<0?"down":"up"}">${fmt(np.perDay)}</b></div>
-    <div class="sub">Até ${dn(np.until)}${np.pay?` (${esc(np.pay.nome)})`:""} · faltam ${np.days} dia${np.days===1?"":"s"}${np.dueAmt?` · já desconta ${fmt(np.dueAmt)} de fixos: ${np.due.map(r=>esc(r.nome.split(" (")[0])).join(", ")}`:""}</div></div>
-  ${walletCard()}
+    <div class="sub">Até ${dn(np.until)}${np.pay?` (${esc(np.pay.nome)})`:""} · faltam ${np.days} dia${np.days===1?"":"s"}${np.dueAmt?` · já desconta ${fmt(np.dueAmt)} de fixos: ${np.due.map(r=>esc(r.nome.split(" (")[0])).join(", ")}`:""}${np.gneed?` · e ${fmt(np.gneed)} para objetivos`:""}</div></div>
+  ${goalsSec()}
+  ${walletCard()}${betLine()}
   ${inv.length?`<button class="invl" data-tab="saldo"><span>📈 Investimentos</span><span><b style="font-weight:400">${fmt(it)}</b>${g.length?` <span class="${gain>=0?"up":"down"}">${sg(gain)}</span>`:""}</span></button>`:""}
   ${(f=>f.length?`<h2>Favoritos <small>1 toque</small></h2><div class="favs" aria-label="Favoritos">${f.map(x=>`<button class="fav" data-act="fav" data-id="${esc(x.id)}">${esc(cat(x.cat).emoji||"•")} ${esc(x.place)} <b>${fmt(x.amt)}</b></button>`).join("")}</div>`:"")(favs())}
   <div class="quick"><input id="qtext" placeholder="Ex.: 3,20 café bpi" autocomplete="off" enterkeyhint="send" aria-label="Registo rápido"><button class="btn" data-act="quick">OK</button></div>
@@ -478,6 +518,7 @@ function vJogo(){
     <div class="two"><button class="btn small alt" data-act="patterns">📊 OS TEUS PADRÕES</button><button class="btn small alt" data-act="rewards">🎁 PRÉMIOS</button></div>
     <div class="goals">${GOALS.map(o=>`<div class="goal"><span>${esc(o.n)}</span><span>${fmt0(Math.min(bi.saved,o.v))} / ${fmt0(o.v)}</span><div class="tr"><i style="width:${Math.min(100,bi.saved/o.v*100).toFixed(1)}%"></i></div></div>`).join("")}</div>
   </div>
+  ${betHistory()}
   <h2>Missões de hoje <small>${done.size}/3</small></h2>
   ${todayQuests().map(k=>`<div class="quest${done.has(k)?" done":""}"><span class="ck">${done.has(k)?"✓":""}</span><span class="qt">${esc(QUESTS[k].t)}</span><span class="rw">+${QUESTS[k].xp}</span></div>`).join("")}
   ${!g.days[t]?`<button class="btn alt" style="width:100%;margin-top:6px" data-act="zero">🧊 HOJE NÃO GASTEI NADA · +25 XP</button>`:""}
@@ -551,12 +592,12 @@ function limitsSheet(){const ms=[1,2,3].map(i=>addMonths(ymOf(today()),-i));
   ${cats("out").map(c=>{const avg=Math.round(ms.reduce((s,m)=>s+catSpent(c.id,m),0)/3);return`<div class="limrow"><span>${esc(c.emoji)} ${esc(c.name)}<small>média 3 meses: ${fmt0(avg)}</small></span><input data-lim="${esc(c.id)}" inputmode="decimal" placeholder="—" value="${esc(toInput(c.budget))}" autocomplete="off"></div>`}).join("")}
   <button class="save" data-act="limsave">GUARDAR LIMITES</button>`)}
 function vGraf(){const l=monthTx(S.month);const by=new Map();let out=0;for(const t of l)if(t.type==="out"){by.set(t.cat,(by.get(t.cat)||0)+t.amt);out+=t.amt}
-  const rows=[...by].sort((a,b)=>b[1]-a[1]),max=Math.max(1,...rows.map(r=>r[1]));
+  for(const t of monthTx(addMonths(S.month,-1)))if(t.type==="out"&&!by.has(t.cat))by.set(t.cat,0);const rows=[...by].sort((a,b)=>b[1]-a[1]),max=Math.max(1,...rows.map(r=>r[1]));
   const six=[];for(let i=5;i>=0;i--){const m=addMonths(S.month,-i),ts=monthTx(m);six.push({m,o:ts.filter(t=>t.type==="out").reduce((s,t)=>s+t.amt,0),n:ts.filter(t=>t.type==="in").reduce((s,t)=>s+t.amt,0)})}
   const mx=Math.max(1,...six.flatMap(x=>[x.o,x.n]));
   const lb=limBars(S.month),cur=S.month===ymOf(today()),pmo=addMonths(S.month,-1),avg3=id=>Math.round([1,2,3].reduce((s,i)=>s+catSpent(id,addMonths(S.month,-i)),0)/3);
   const wym=S.month<ymOf(today())?S.month:addMonths(ymOf(today()),-1);
-  return monthNav()+(cur?forecastBoard():"")+`<h2>Calendário <small>toca num dia</small></h2>`+calBoard(S.month)+`<h2>Limites do mês <small><button data-act="limits" style="text-decoration:underline">${lb?"mudar":"definir"}</button></small></h2>`+(lb?`<div class="board">${lb}</div>`:`<div class="board" style="display:grid;gap:10px"><div class="note" style="margin:0">Ainda não tens limites. Define quanto queres gastar por mês em restaurantes, compras, lazer…</div><button class="btn" data-act="limits">DEFINIR LIMITES</button></div>`)+`<h2>Gastos por categoria <small><button data-act="cats" style="text-decoration:underline">gerir</button></small></h2>`+(rows.length?`<div class="board bars">${rows.map(([id,v])=>{const c=cat(id);return`<div class="bar"><div class="lab"><span>${esc(c.emoji)} ${esc(c.name)}</span><span>${fmt(v)} <span class="dim">${Math.round(v/out*100)}%</span></span></div><div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${id==="apostas"?"var(--red)":esc(c.color||"#999")}"></div></div>${cmpLine(v,catSpent(id,pmo),avg3(id),pmo)}</div>`}).join("")}</div>`:`<div class="empty"><span class="px">NADA AQUI</span>Sem compras neste mês.</div>`)
+  return monthNav()+(cur?forecastBoard():"")+`<h2>Calendário <small>toca num dia</small></h2>`+calBoard(S.month)+`<h2>Limites do mês <small><button data-act="limits" style="text-decoration:underline">${lb?"mudar":"definir"}</button></small></h2>`+(lb?`<div class="board">${lb}</div>`:`<div class="board" style="display:grid;gap:10px"><div class="note" style="margin:0">Ainda não tens limites. Define quanto queres gastar por mês em restaurantes, compras, lazer…</div><button class="btn" data-act="limits">DEFINIR LIMITES</button></div>`)+`<h2>Custo por categoria <small>toca para ver</small></h2>`+(rows.length?`<div class="board bars">${rows.map(([id,v])=>{const c=cat(id);return`<button class="bar" data-act="catview" data-id="${esc(id)}"><div class="lab"><span>${esc(c.emoji)} ${esc(c.name)}</span><span>${fmt(v)} <span class="dim">${out?Math.round(v/out*100):0}%</span></span></div><div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${id==="apostas"?"var(--red)":esc(c.color||"#999")}"></div></div>${cmpLine(v,catSpent(id,pmo),avg3(id),pmo)}</button>`}).join("")}<div style="display:flex;justify-content:space-between;gap:10px;border-top:3px dashed rgba(27,27,58,.3);padding-top:10px;font-size:22px"><span>TOTAL DO MÊS</span><b style="font-weight:400">${fmt(out)}</b></div></div><button class="btn alt" style="width:100%;margin-top:10px" data-act="cats">🏷️ GERIR CATEGORIAS (criar, editar, apagar)</button>`:`<div class="empty"><span class="px">NADA AQUI</span>Sem compras neste mês.</div>`)
   +`<h2>Últimos 6 meses</h2><div class="board"><div class="cols">${six.map(x=>`<div class="col"><i style="height:${(x.o/mx*100).toFixed(1)}%;background:var(--red)"></i><i style="height:${(x.n/mx*100).toFixed(1)}%;background:var(--green)"></i></div>`).join("")}</div>
    <div class="collab">${six.map(x=>`<span>${MES3[+x.m.slice(5)-1]}</span>`).join("")}</div><div class="legend"><span><i style="background:var(--red)"></i>Gasto</span><span><i style="background:var(--green)"></i>Recebido</span></div></div>`
   +`<h2>Fixos e subscrições <small><button data-act="recurs" style="text-decoration:underline">gerir</button></small></h2>`+fixedBoard()
@@ -879,6 +920,16 @@ document.addEventListener("click",async e=>{
     <input class="amount" id="lim" inputmode="decimal" value="${esc(toInput(weekLimit()))}"><button class="save" data-act="setlimit">GUARDAR</button><button class="del" style="border-color:var(--edge);color:var(--ink)" data-act="autolimit">USAR SUGESTÃO AUTOMÁTICA</button>`)}
   else if(a==="setlimit"){const v=parseAmt($("#lim").value);if(!v)return;const g=game();g.weekLimit=v;saveGame(g);closeSheet()}
   else if(a==="autolimit"){const g=game();g.weekLimit=0;saveGame(g);closeSheet()}
+  else if(a==="catview"){S.fCat=el.dataset.id;S.q="";S.fTrip="";S.fAcc="";S.tab="lista";scrollTo(0,0);render()}
+  else if(a==="goalnew"){S.goal={id:null,e:"",n:"",meta:0,ate:"",g:0};goalForm()}
+  else if(a==="goaledit"){const g=goals().find(x=>x.id===el.dataset.id);if(!g)return;S.goal={...g};goalForm()}
+  else if(a==="goalsave"){goalRead();const g=S.goal;if(!g.n){toast("DÁ UM NOME AO OBJETIVO");return}if(!g.meta){toast("FALTA QUANTO QUERES JUNTAR");return}
+    const l=(S.config.goals||[]).filter(x=>x.id!==g.id);const o=(S.config.goals||[]).find(x=>x.id===g.id)||{};l.push({id:g.id||genId("g"),e:g.e,n:g.n,meta:g.meta,ate:g.ate,g:g.g||0,log:o.log||[]});saveGoals(l);closeSheet();toast("🎯 OBJETIVO GUARDADO")}
+  else if(a==="goaldel"){if(!S.goal.arm){goalRead();S.goal.arm=true;goalForm();return}const id=S.goal.id;saveGoals((S.config.goals||[]).filter(x=>x.id!==id));closeSheet();toast("APAGADO · O DINHEIRO VOLTA AO DISPONÍVEL")}
+  else if(a==="goalmv"){S.gmv={id:el.dataset.id,k:el.dataset.k};goalMoveSheet()}
+  else if(a==="goalmvsave"){const v=parseAmt($("#gm_v").value);if(!v){toast("FALTA O VALOR");return}const m=S.gmv;
+    const l=(S.config.goals||[]).map(x=>{if(x.id!==m.id)return x;const nv=m.k==="add"?(x.g||0)+v:Math.max(0,(x.g||0)-v);return{...x,g:nv,log:[...(x.log||[]),{d:today(),v:m.k==="add"?v:-Math.min(v,x.g||0)}].slice(-60)}});
+    saveGoals(l);closeSheet();toast(m.k==="add"?`🎯 +${fmt(v)} GUARDADOS`:`↩ ${fmt(v)} DE VOLTA AO DISPONÍVEL`)}
   else if(a==="cash"){const c=cashAcc();if(!c||!S.ready)return;const k=el.dataset.k;
     if(k==="lev"||k==="dep"){const b=bankDef();S.tf={id:null,amt:0,from:k==="lev"?b:c.id,to:k==="lev"?c.id:b,note:k==="lev"?"Levantamento multibanco":"Depósito de dinheiro",date:today(),time:nowTime(),title:k==="lev"?"🏧 LEVANTEI DINHEIRO":"🏦 DEPOSITEI NO BANCO"};trForm()}
     else{const type=k==="pag"?"out":"in";S.form={id:null,type,amt:0,place:"",cat:"",method:"Dinheiro",acc:c.id,date:today(),time:nowTime(),notes:""};form()}}
