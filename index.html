@@ -50,8 +50,8 @@ header{min-width:0;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;pa
 .xpbar{display:block;height:12px;border:3px solid var(--edge);background:#fff;position:relative}
 .xpbar i{position:absolute;inset:0 auto 0 0;background:repeating-linear-gradient(90deg,var(--green) 0 6px,#23964a 6px 8px)}
 .stat{font-family:var(--pixel);font-size:10px;white-space:nowrap}
-.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
-.tabs button{font-family:var(--pixel);font-size:7.5px;padding:10px 1px;min-width:0;overflow:hidden;background:var(--paper);border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85)}
+.tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+.tabs button{font-family:var(--pixel);font-size:6.5px;padding:10px 1px;min-width:0;overflow:hidden;background:var(--paper);border:3px solid var(--edge);box-shadow:3px 3px 0 rgba(27,27,58,.85)}
 .tabs button.on{background:var(--coin);}
 .press:active,.tabs button:active,.chip:active,.block:active,.btn:active{transform:translate(3px,3px);box-shadow:none!important}
 /* mascote */
@@ -168,6 +168,9 @@ button.bar{display:block;width:100%;text-align:left;background:none;border:0;pad
 .badge b{font-family:var(--pixel);font-size:7px;line-height:1.5;font-weight:400}
 .badge span{font-size:16px;color:var(--dim)}
 .badge.lock{opacity:.45;filter:grayscale(1)} .badge.got{background:#FFF3B8}
+/* inventors */
+.autop{text-align:center}.autop .px{font-size:9px;color:var(--red);line-height:1.6}.autop .bigv{display:block;font-size:54px;font-weight:400;text-shadow:3px 3px 0 var(--edge);margin-top:8px;white-space:nowrap}
+.row.au{cursor:pointer}.row.au .btn.small{min-height:32px;font-size:7px;padding:0 8px}
 /* chão + blocos */
 .ground{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px max(14px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));
   background:linear-gradient(var(--grass) 0 12px,var(--edge) 12px 15px,var(--dirt) 15px);background-size:100% 100%;border-top:4px solid var(--edge)}
@@ -207,7 +210,7 @@ button.bar{display:block;width:100%;text-align:left;background:none;border:0;pad
 .dot.ok{background:var(--green)} .dot.busy{background:var(--coin)} .dot.err{background:var(--red)}
 .setup{margin-top:40px;display:grid;gap:14px}
 @media (prefers-reduced-motion: reduce){.hero canvas,.cloud,.block.bump{animation:none}.pop,.coinfly{animation-duration:.01s}}
-@media (max-width:370px){.score b{font-size:21px}.block{font-size:9px}.hiscore b{font-size:44px}.tabs button{font-size:6.5px}}
+@media (max-width:370px){.score b{font-size:21px}.block{font-size:9px}.hiscore b{font-size:44px}.tabs button{font-size:5.5px}}
 </style>
 </head>
 <body>
@@ -221,7 +224,7 @@ button.bar{display:block;width:100%;text-align:left;background:none;border:0;pad
       <span class="stat" id="h_coins">🪙0</span>
     </button>
     <nav class="tabs" aria-label="Separadores">
-      <button data-tab="inicio" class="on">INICIO</button><button data-tab="lista">LISTA</button><button data-tab="saldo">SALDO</button><button data-tab="grafico">GRÁFICO</button><button data-tab="jogo">JOGO</button>
+      <button data-tab="inicio" class="on">INICIO</button><button data-tab="lista">LISTA</button><button data-tab="saldo">SALDO</button><button data-tab="grafico">GRÁFICO</button><button data-tab="aulas">AULAS</button><button data-tab="jogo">JOGO</button>
     </nav>
     <div style="display:flex;justify-content:space-between;align-items:center"><span class="sync" id="sync"><span class="dot"></span><span>—</span></span><button class="btn small alt" data-act="refresh">⟳ ATUALIZAR</button></div>
   </header>
@@ -358,7 +361,7 @@ function act(kind,ev){const g=game(),t=today(),first=!g.days[t];if(first)g.days[
   evalQuests(g);saveGame(g)}
 const QUESTS={log:{t:"Regista o dia (movimento ou dia sem gastos)",xp:15,ok:g=>!!g.days[today()]},
   nobet:{t:"Não apostar hoje (conta a partir das 21h)",xp:30,ok:()=>new Date().getHours()>=21&&!txs().some(t=>isBet(t)&&t.date===today())},
-  catch:{t:"Apanha todas as moedas AUTO",xp:15,ok:()=>pending().length===0&&txs().some(t=>t.date===today()&&t.src!=="manual"&&t.src!=="extrato")},
+  catch:{t:"Apanha todas as moedas AUTO",xp:15,ok:()=>pending().length===0&&txs().some(t=>t.date===today()&&t.src!=="manual"&&t.src!=="extrato"&&t.type!=="aula")},
   graph:{t:"Espreita o gráfico do mês",xp:10,ok:()=>!!S.visited.grafico},saldo:{t:"Confere os saldos",xp:10,ok:()=>!!S.visited.saldo},
   place:{t:"Regista uma compra com o sítio",xp:15,ok:()=>txs().some(t=>t.type==="out"&&t.date===today()&&t.place&&t.src==="manual")}};
 function todayQuests(){const pool=["catch","graph","saldo","place"];return["log","nobet",pool[hash(today())%pool.length]]}
@@ -411,7 +414,7 @@ function render(){
   if(!S.ready){$("#main").innerHTML=`<div class="empty" style="margin-top:20px"><span class="px">A CARREGAR…</span>A ir buscar os teus dados à folha Google.</div>`;return}
   paintHud();setSync(S.sync.startsWith("SEM")?"err":S.sync.startsWith("A ")?"busy":"ok",S.sync);
   document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===S.tab));
-  const y=scrollY,ae=document.activeElement,keep=ae&&ae.id==="lsearch"?ae.selectionStart:null;$("#main").innerHTML=({inicio:vInicio,jogo:vJogo,lista:vLista,saldo:vSaldo,grafico:vGraf}[S.tab]||vInicio)();scrollTo(0,y);
+  const y=scrollY,ae=document.activeElement,keep=ae&&ae.id==="lsearch"?ae.selectionStart:null;$("#main").innerHTML=({inicio:vInicio,jogo:vJogo,lista:vLista,saldo:vSaldo,grafico:vGraf,aulas:vAulas}[S.tab]||vInicio)();scrollTo(0,y);
   if(keep!==null){const i=$("#lsearch");if(i){i.focus();try{i.setSelectionRange(keep,keep)}catch(e){}}}
   const cv=$("#pig");if(cv)drawPig(cv,mood());
 }
@@ -480,7 +483,7 @@ function vInicio(){const t=today(),ym=ymOf(t),rsv=reservedTotal(),tot=availTotal
   <div class="board perday"><div class="row1"><span>PODES GASTAR<br>POR DIA</span><b class="${np.perDay<0?"down":"up"}">${fmt(np.perDay)}</b></div>
     <div class="sub">Até ${dn(np.until)}${np.pay?` (${esc(np.pay.nome)})`:""} · faltam ${np.days} dia${np.days===1?"":"s"}${np.dueAmt?` · já desconta ${fmt(np.dueAmt)} de fixos: ${np.due.map(r=>esc(r.nome.split(" (")[0])).join(", ")}`:""}${np.gneed?` · e ${fmt(np.gneed)} para objetivos`:""}</div></div>
   ${goalsSec()}
-  ${walletCard()}${betLine()}
+  ${walletCard()}${auHome()}${betLine()}
   ${inv.length?`<button class="invl" data-tab="saldo"><span>📈 Investimentos</span><span><b style="font-weight:400">${fmt(it)}</b>${g.length?` <span class="${gain>=0?"up":"down"}">${sg(gain)}</span>`:""}</span></button>`:""}
   ${(f=>f.length?`<h2>Favoritos <small>1 toque</small></h2><div class="favs" aria-label="Favoritos">${f.map(x=>`<button class="fav" data-act="fav" data-id="${esc(x.id)}">${esc(cat(x.cat).emoji||"•")} ${esc(x.place)} <b>${fmt(x.amt)}</b></button>`).join("")}</div>`:"")(favs())}
   <div class="quick"><input id="qtext" placeholder="Ex.: 3,20 café bpi" autocomplete="off" enterkeyhint="send" aria-label="Registo rápido"><button class="btn" data-act="quick">OK</button></div>
@@ -894,6 +897,203 @@ function trophies(){const g=game(),bi=betInfo();openSheet(`<div class="shead"><b
   <div class="badges">${BADGES.map(b=>`<div class="badge ${g.badges[b.id]?"got":"lock"}"><em>${b.e}</em><b>${b.n}</b><span>${b.d}</span></div>`).join("")}</div>
   <div class="note">XP: registo +10 · moeda AUTO +5 · dia sem gastos +25 · cada dia sem apostas +20 · missões +10 a +30 · monstro +100. Nível novo +5 🪙, conquista +10 🪙.</div>
   <button class="del" style="border-color:var(--edge);color:var(--ink)" data-act="disconnect">DESLIGAR DESTA FOLHA</button>`)}
+
+/* ============ INVENTORS: aulas e o que vou receber (período de 25 a 24) ============
+   Cada aula é uma linha da folha "Movimentos" com tipo "aula" (não mexe nos saldos):
+   loja = local · categoria = atividade · valor = quanto paga · hora/para = início/fim
+   cartao = transporte (€) · metodo "nao" = não conta para o total · notas = nota */
+const AU_SEED=[
+  {l:"EB de Rio Tinto",a:"DigitALL",v:1600,t:350,z:"rt"},
+  {l:"Escola Básica n.º 1 de São Caetano, Gondomar",a:"DigitALL",v:1600,t:350,z:"rt"},
+  {l:"Escola Básica de Cabanas, Gondomar",a:"DigitALL",v:1600,t:350,z:"rt"},
+  {l:"Escola Básica de Alto de Soutelo, Gondomar",a:"DigitALL",v:1600,t:470,z:"rt"},
+  {l:"Colégio Marca d´Água",a:"Club 5",v:1600,t:1000},
+  {l:"Lycée Français Porto",a:"Club 6-12",v:1600,t:0},
+  {l:"Colégio Nossa Senhora da Bonança",a:"Club 6-12",v:1600,t:0},
+  {l:"Externato da Misericórdia de Nossa Senhora do Rosário de Unhão",a:"Club 6-12",v:1600,t:2060}];
+const AU_ACTS=["DigitALL","Club 5","Club 6-12","Club 10-12","Workshop"];
+const aulas=()=>txs().filter(t=>t.type==="aula");
+const auOn=t=>t.method!=="nao";
+const auT=t=>Math.round((Number(String(t.card||"").replace(",","."))||0)*100);
+const auSeed=l=>AU_SEED.find(s=>norm(s.l)===norm(l));
+const auZone=l=>{const s=auSeed(l);if(s&&s.z)return s.z;const n=norm(l);return/rio tinto|gondomar|sao caetano|cabanas|soutelo/.test(n)?"rt":n};
+const auShort=l=>String(l||"").replace(/^Escola Básica n\.?\s*º?\s*1 de /i,"EB1 ").replace(/^Escola Básica de /i,"EB ").replace(/,\s*Gondomar$/i,"")
+  .replace(/^Externato da Misericórdia de Nossa Senhora do Rosário de /i,"Externato ").replace(/^Colégio Nossa Senhora da /i,"Col. ")||"Sem local";
+const auIcon=a=>/digit/i.test(a)?"🤖":/club/i.test(a)?"🧩":/workshop/i.test(a)?"🛠️":"🎓";
+const auKey=(d,h,l)=>d+"|"+(h||"")+"|"+norm(l);
+/* período: de dia 25 a dia 24 do mês seguinte */
+const auStart=d=>+d.slice(8)>=25?`${ymOf(d)}-25`:`${addMonths(ymOf(d),-1)}-25`;
+const auEnd=s=>`${addMonths(ymOf(s),1)}-24`;
+const auLabel=s=>{const e=auEnd(s);return`${+s.slice(8)} ${MES3[+s.slice(5,7)-1]} – ${+e.slice(8)} ${MES3[+e.slice(5,7)-1]}${e.slice(0,4)!==today().slice(0,4)?" "+e.slice(0,4):""}`};
+function auPer(s){const e=auEnd(s),td=today(),l=aulas().filter(t=>t.date>=s&&t.date<=e).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),on=l.filter(auOn);
+  const v=on.reduce((x,t)=>x+t.amt,0),tr=on.reduce((x,t)=>x+auT(t),0),done=on.filter(t=>t.date<=td).reduce((x,t)=>x+t.amt+auT(t),0);
+  return{s,e,l,on,v,tr,tot:v+tr,done,later:v+tr-done,off:l.length-on.length}}
+const auCfg=()=>S.config.inventors||{};
+const auPaid=s=>(auCfg().paid||{})[s];
+function saveAuCfg(c){send({a:"config",config:{...S.config,inventors:{...auCfg(),...c}}})}
+const auAcc=()=>{const r=S.accounts.get("rev");if(r&&!r.hidden&&!isInv(r))return r.id;
+  const l=accs().filter(a=>!isInv(a)&&/revolut/.test(norm(a.name))).sort((a,b)=>a.name.length-b.name.length);return(l[0]||availAccs()[0]||accs()[0])?.id||""};
+const auCatId=()=>cats("in").find(c=>/inventors|aulas/.test(norm(c.id+" "+c.name)))?.id||"";
+const auRec=()=>[...S.recur.values()].find(r=>r.ativo==="1"&&r.tipo==="in"&&/inventor/.test(norm(r.nome)));
+/* locais: os conhecidos + os que já usaste, os mais usados primeiro */
+function auPlaces(){const n=new Map();for(const s of AU_SEED)n.set(norm(s.l),{l:s.l,c:0,d:""});
+  for(const t of aulas()){if(!t.place)continue;const k=norm(t.place),o=n.get(k)||{l:t.place,c:0,d:""};o.c++;if(t.date>o.d)o.d=t.date;n.set(k,o)}
+  return[...n.values()].sort((a,b)=>b.d.localeCompare(a.d)||b.c-a.c).map(o=>o.l)}
+/* sugestão ao escolher o local: atividade, valor, horário do mesmo dia da semana e transporte (1 vez por dia e por zona) */
+function auSuggest(local,date,except){const n=norm(local),seed=auSeed(local);
+  const hist=aulas().filter(t=>t.id!==except&&norm(t.place)===n).sort((a,b)=>skey(b).localeCompare(skey(a)));
+  const day=aulas().filter(t=>t.id!==except&&t.date===date),used=new Set(day.filter(t=>norm(t.place)===n).map(t=>t.time));
+  const wd=new Date(date+"T12:00:00").getDay(),slots=[],seen=new Set();
+  for(const t of hist)if(t.time&&!seen.has(t.time)&&new Date(t.date+"T12:00:00").getDay()===wd){seen.add(t.time);slots.push(t)}
+  slots.sort((a,b)=>a.time.localeCompare(b.time));const slot=slots.find(t=>!used.has(t.time)),ref=slot||hist[0];
+  const z=auZone(local),paidTr=day.some(t=>auOn(t)&&auZone(t.place)===z&&auT(t)>0),htr=hist.find(t=>auT(t)>0);
+  return{act:ref?.cat||seed?.a||"",amt:ref?.amt||seed?.v||1600,time:slot?.time||"",end:slot?.to||"",tr:paidTr?0:htr?auT(htr):seed?seed.t:0,trDone:paidTr}}
+function auNew(date,place){const f={id:null,date:date||today(),time:"",end:"",place:place||"",act:"",amt:1600,tr:0,on:true,note:""};if(place)auApply(f);return f}
+function auApply(f){const s=auSuggest(f.place,f.date,f.id);f.act=s.act||f.act;f.amt=s.amt;f.tr=s.tr;if(s.time){f.time=s.time;f.end=s.end}
+  f.hint=s.trDone?"🚌 O transporte de hoje nesta zona já está noutra aula.":""}
+
+/* ===== ecrã ===== */
+function auRow(t){const on=auOn(t),tr=auT(t);
+  return`<div class="row au${on?"":" off"}" role="button" tabindex="0" data-act="auedit" data-id="${esc(t.id)}"><span class="ic">${auIcon(t.cat)}</span><span style="min-width:0"><span class="t1">${esc(t.cat||"Aula")} · ${esc(auShort(t.place))}</span>
+  <span class="t2">${esc(t.time||"")}${t.to?"–"+esc(t.to):""}${tr?` · 🚌 +${fmt(tr)}`:""}${on?"":" · NÃO CONTA"}</span>${t.notes?`<span class="t3">📝 ${esc(t.notes)}</span>`:""}</span>
+  <span style="display:grid;gap:6px;justify-items:end"><span class="amt ${on?"up":""}"${on?"":' style="text-decoration:line-through"'}>${fmt(t.amt)}</span><button class="btn small ${on?"alt":""}" data-act="autog" data-id="${esc(t.id)}">${on?"✓ CONTA":"✗ NÃO"}</button></span></div>`}
+function vAulas(){const s=S.invP||auStart(today()),p=auPer(s),pd=auPaid(s),em=MES[+p.e.slice(5,7)-1];
+  const g=new Map();for(const t of p.l){if(!g.has(t.date))g.set(t.date,[]);g.get(t.date).push(t)}
+  const days=[...g].sort((a,b)=>b[0].localeCompare(a[0]));
+  const by=new Map();for(const t of p.on){const k=auShort(t.place),o=by.get(k)||{n:0,v:0};o.n++;o.v+=t.amt+auT(t);by.set(k,o)}
+  const dn=d=>`${+d.slice(8)}/${+d.slice(5,7)}`,diff=pd?p.tot-pd.amt:0;
+  return`<div class="month"><button class="arrow" data-act="auprev" aria-label="Período anterior">◄</button><b>${esc(auLabel(s))}</b><button class="arrow" data-act="aunext" aria-label="Período seguinte">►</button></div>
+  <div class="board autop"><span class="px">${pd?"✓ PAGO PELOS INVENTORS":"🤖 VAIS RECEBER DOS INVENTORS"}</span><b class="bigv up">${fmt(pd?pd.amt:p.tot)}</b>
+    <div class="mon"><div><span>AULAS</span><b>${p.on.length}</b></div><div><span>AULAS €</span><b class="up">${fmt0(p.v)}</b></div><div><span>TRANSPORTE</span><b class="up">${fmt(p.tr)}</b></div></div>
+    <div class="note" style="margin:8px 0 0">${pd?`Entrou a ${dn(pd.date)} na ${esc(accName(pd.acc))}.${diff?` ⚠️ As aulas agora somam ${fmt(p.tot)} (${diff>0?"+":"−"}${fmt(Math.abs(diff))} do que entrou).`:""}`
+      :`${p.later>0?`Já dado ${fmt(p.done)} · ainda por dar ${fmt(p.later)}. `:""}Pagam no fim de ${esc(em)} e entra na Revolut.`}${p.off?` ${p.off} aula${p.off>1?"s":""} fora do total.`:""}</div></div>
+  <div class="tools"><button class="btn" data-act="auadd">+ AULA</button><button class="btn alt" data-act="auimp">📋 COLAR LISTA</button></div>
+  ${p.on.length?pd?`<button class="btn alt" style="width:100%;margin-top:8px" data-act="auunpay">${S.auArm===s?"TOCA OUTRA VEZ PARA DESMARCAR":"↩ DESMARCAR PAGO"}</button>`
+    :`<button class="btn green" style="width:100%;margin-top:8px" data-act="aupay">💰 OS INVENTORS PAGARAM</button>`:""}
+  ${by.size>1?`<h2>Por escola</h2><div class="board kv">${[...by].sort((a,b)=>b[1].v-a[1].v).map(([k,o])=>`<span>${esc(k)} · ${o.n} aula${o.n>1?"s":""}</span><b>${fmt(o.v)}</b>`).join("")}<span class="tot">Total</span><b class="tot">${fmt(p.tot)}</b></div>`:""}
+  ${days.length?`<h2>Aulas <small>${p.l.length}</small></h2>`+days.map(([d,ts])=>`<div class="day"><span>${dayLabel(d)}${d>today()?" · agendada":""}</span><span><button data-act="auday" data-d="${esc(d)}" style="color:#fff;text-decoration:underline;font:inherit">⧉ copiar</button> · +${fmt(ts.filter(auOn).reduce((x,t)=>x+t.amt+auT(t),0))}</span></div>`+ts.map(auRow).join("")).join("")
+    :`<div class="empty" style="margin-top:14px"><span class="px">INSERT COIN</span>Sem aulas de ${esc(auLabel(s))}. Toca em + AULA ou cola a lista dos Inventors.</div>`}`}
+function auHome(){const s=auStart(today()),p=auPer(s),pd=auPaid(s);
+  return`<button class="invl" data-tab="aulas"><span>🤖 Inventors · ${esc(auLabel(s))}</span><span><b style="font-weight:400" class="up">${pd?"✓ "+fmt(pd.amt):fmt(p.tot)}</b> ${p.on.length} aula${p.on.length===1?"":"s"}</span></button>`}
+
+/* ===== adicionar / editar aula ===== */
+function auForm(){const f=S.au,pl=auPlaces(),acts=[...new Set([...AU_ACTS,...aulas().map(t=>t.cat).filter(Boolean)])];
+  const chip=(k,v,l)=>`<button class="chip${f[k]===v?" on":""}" data-act="aupick" data-k="${k}" data-v="${esc(v)}">${l}</button>`;
+  openSheet(`<div class="shead"><b>${f.id?"✏️ EDITAR AULA":"🤖 NOVA AULA"}</b><button class="x" data-act="close">X</button></div>
+  <div><span class="lbl">Dia</span><input type="date" id="au_d" value="${esc(f.date)}"></div>
+  <div class="two"><div><span class="lbl">Início</span><input type="time" id="au_h" value="${esc(f.time)}"></div><div><span class="lbl">Fim</span><input type="time" id="au_f" value="${esc(f.end)}"></div></div>
+  <div><span class="lbl">Onde</span><div class="chips">${pl.map(p=>chip("place",p,esc(auShort(p)))).join("")}</div>
+    <input id="au_l" style="margin-top:8px" placeholder="Outro local…" value="${pl.includes(f.place)?"":esc(f.place)}" autocomplete="off"></div>
+  <div><span class="lbl">Atividade</span><div class="chips">${acts.map(a=>chip("act",a,esc(a))).join("")}</div>
+    <input id="au_a" style="margin-top:8px" placeholder="Outra atividade…" value="${acts.includes(f.act)?"":esc(f.act)}" autocomplete="off"></div>
+  <div class="two"><div><span class="lbl">Quanto paga</span><input id="au_v" inputmode="decimal" value="${esc(toInput(f.amt))}" placeholder="16,00 €" autocomplete="off"></div>
+    <div><span class="lbl">Transporte</span><input id="au_t" inputmode="decimal" value="${esc(toInput(f.tr))}" placeholder="opcional" autocomplete="off"></div></div>
+  <div class="note" id="au_hint" style="margin:0"${f.hint?"":" hidden"}>${esc(f.hint||"")}</div>
+  <div><span class="lbl">Conta para o total?</span><div class="chips"><button class="chip${f.on?" on":""}" data-act="aupick" data-k="on" data-v="1">✓ CONTA</button><button class="chip${f.on?"":" on"}" data-act="aupick" data-k="on" data-v="0">✗ NÃO CONTA</button></div>
+    <div class="note" style="margin:6px 0 0">Aula que não aconteceu? Marca "não conta": fica registada mas sai do total.</div></div>
+  <div><span class="lbl">Nota (opcional)</span><input id="au_n" value="${esc(f.note)}" placeholder="Ex.: 3.º F · feriado · substituição" autocomplete="off"></div>
+  <button class="save" data-act="ausave">GUARDAR</button>
+  ${f.id?`<button class="btn alt" style="width:100%" data-act="audup">⧉ DUPLICAR PARA OUTRO DIA</button><button class="del" data-act="audel">${f.arm?"TOCA OUTRA VEZ PARA APAGAR":"APAGAR AULA"}</button>`
+    :`<button class="btn alt" style="width:100%" data-act="ausave" data-more="1">GUARDAR E JUNTAR OUTRA</button>`}`)}
+/* atualiza a folha sem a redesenhar (no iPhone, redesenhar ao sair de um campo perde o toque em GUARDAR) */
+function auSync(){const f=S.au,set=(id,v)=>{const i=$(id);if(i)i.value=v};set("#au_h",f.time);set("#au_f",f.end);set("#au_v",toInput(f.amt));set("#au_t",toInput(f.tr));
+  let hit=false;$$('#sheet .chip[data-act="aupick"][data-k="act"]').forEach(c=>{const on=c.dataset.v===f.act;if(on)hit=true;c.classList.toggle("on",on)});set("#au_a",hit?"":f.act);
+  const h=$("#au_hint");if(h){h.textContent=f.hint||"";h.hidden=!f.hint}}
+function auRead(){const f=S.au;if(!f||!$("#au_d"))return;f.date=$("#au_d").value||f.date;f.time=$("#au_h").value||"";f.end=$("#au_f").value||"";
+  const l=$("#au_l").value.trim();if(l)f.place=l;const a=$("#au_a").value.trim();if(a)f.act=a;
+  f.amt=parseAmt($("#au_v").value);f.tr=parseAmt($("#au_t").value);f.note=$("#au_n").value.trim()}
+const auTx=f=>({id:f.id||genId("au"),type:"aula",amt:f.amt,date:f.date,time:f.time,to:f.end,place:f.place,cat:f.act,card:f.tr?String(f.tr/100):"",method:f.on?"":"nao",notes:f.note||"",acc:"",src:"inventors",review:false,created:(S.tx.get(f.id)||{}).created||Date.now()});
+function auSave(more,ev){auRead();const f=S.au;if(!f.place){toast("ESCOLHE ONDE FOI");return}if(!f.act){toast("ESCOLHE A ATIVIDADE");return}if(!f.amt){toast("FALTA QUANTO PAGA");return}
+  const t=auTx(f);if(!f.id&&aulas().some(x=>auKey(x.date,x.time,x.place)===auKey(t.date,t.time,t.place))&&t.time){toast("JÁ TENS ESSA AULA A ESSA HORA");return}
+  send({a:"put",row:toRow(t)});coinSnd();pop(ev,"+"+fmt(t.amt+(f.on?f.tr:0)));S.invP=auStart(t.date);
+  if(more){S.au=auNew(t.date,t.place);auForm();toast("GUARDADA · VAI A PRÓXIMA")}else{closeSheet();S.au=null;toast(f.id?"GUARDADO":"🤖 AULA GUARDADA")}}
+
+/* ===== colar a lista dos Inventors =====
+   formato: 06/10/2026 09:10–10:00 | DigitALL · Escola Básica de Cabanas, Gondomar | fee: 16 | expense: 3.5 */
+function auParse(txt){const out=[];for(const raw of String(txt||"").split(/\r?\n/)){
+  const m=raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}:\d{2})\s*[–—-]\s*(\d{1,2}:\d{2})\s*\|\s*([^|]+?)\s*\|\s*fee:\s*([\d.,]+)(?:\s*\|\s*expense:\s*([\d.,]+))?/i);if(!m)continue;
+  const parts=m[6].split(/\s*·\s*/);out.push({date:`${m[3]}-${pad(m[2])}-${pad(m[1])}`,time:m[4].padStart(5,"0"),end:m[5].padStart(5,"0"),act:parts[0].trim(),place:parts.slice(1).join(" · ").trim(),amt:parseAmt(m[7]),tr:m[8]?parseAmt(m[8]):0})}return out}
+function auImpInfo(txt){const l=auParse(txt),have=new Set(aulas().map(t=>auKey(t.date,t.time,t.place))),nw=l.filter(x=>!have.has(auKey(x.date,x.time,x.place)));
+  return{l,nw,dup:l.length-nw.length,v:nw.reduce((s,x)=>s+x.amt,0),tr:nw.reduce((s,x)=>s+x.tr,0)}}
+function auImpPrev(){const el=$("#au_prev");if(!el)return;const i=auImpInfo($("#au_imp").value);
+  el.innerHTML=i.l.length?`Encontrei <b>${i.l.length}</b> aula${i.l.length>1?"s":""}: <b>${i.nw.length}</b> nova${i.nw.length===1?"":"s"} (${fmt(i.v)} + ${fmt(i.tr)} de transporte)${i.dup?` · ${i.dup} já registada${i.dup>1?"s":""} (ficam de fora)`:""}.`:"Ainda não encontrei nenhuma linha no formato da lista."}
+function auImpSheet(){openSheet(`<div class="shead"><b>📋 COLAR LISTA</b><button class="x" data-act="close">X</button></div>
+  <div class="note" style="margin:0">Cola a lista de aulas dos Inventors, uma por linha. As que já tens não são repetidas.</div>
+  <textarea id="au_imp" rows="8" placeholder="06/10/2026 09:10–10:00 | DigitALL · Escola Básica de Cabanas, Gondomar | fee: 16 | expense: 3.5" style="font-size:18px"></textarea>
+  <div class="note" id="au_prev" style="margin:0">Ainda não encontrei nenhuma linha no formato da lista.</div>
+  <button class="save" data-act="auimpok">IMPORTAR</button>`);setTimeout(()=>$("#au_imp")?.focus(),80)}
+function auImport(){const i=auImpInfo($("#au_imp").value);if(!i.nw.length){toast(i.l.length?"ESSAS AULAS JÁ ESTÃO TODAS":"NÃO ENCONTREI AULAS NO TEXTO");return}
+  const base=Date.now();i.nw.forEach((x,k)=>send({a:"put",row:toRow({id:genId("au"),type:"aula",amt:x.amt,date:x.date,time:x.time,to:x.end,place:x.place,cat:x.act,card:x.tr?String(x.tr/100):"",method:"",notes:"",acc:"",src:"inventors",review:false,created:base+k})}));
+  S.invP=auStart(i.nw[i.nw.length-1].date);closeSheet();coinSnd();toast(`📋 ${i.nw.length} AULAS IMPORTADAS · +${fmt(i.v+i.tr)}`)}
+
+/* ===== copiar um dia inteiro (ex.: a mesma semana a seguir) ===== */
+function auDaySheet(){const d=S.aud,ts=aulas().filter(t=>t.date===d);openSheet(`<div class="shead"><b>⧉ COPIAR ${esc(dayLabel(d).toUpperCase())}</b><button class="x" data-act="close">X</button></div>
+  <div class="note" style="margin:0">${ts.length} aula${ts.length>1?"s":""}: ${esc(ts.map(t=>`${t.time} ${auShort(t.place)}`).join(" · "))}</div>
+  <div><span class="lbl">Copiar para o dia</span><input type="date" id="au_cd" value="${esc(addDays(d,7))}"></div>
+  <div class="chips"><button class="chip" data-act="aucdq" data-n="7">+1 semana</button><button class="chip" data-act="aucdq" data-n="14">+2 semanas</button></div>
+  <button class="save" data-act="aucdok">COPIAR AULAS</button>`)}
+function auCopyDay(){const from=S.aud,to=$("#au_cd").value;if(!to||to===from){toast("ESCOLHE OUTRO DIA");return}
+  const have=new Set(aulas().map(t=>auKey(t.date,t.time,t.place)));let n=0;const base=Date.now();
+  for(const t of aulas().filter(x=>x.date===from)){if(have.has(auKey(to,t.time,t.place)))continue;send({a:"put",row:toRow({...t,id:genId("au"),date:to,method:"",notes:"",created:base+n})});n++}
+  S.invP=auStart(to);closeSheet();toast(n?`⧉ ${n} AULAS COPIADAS PARA ${dayLabel(to).toUpperCase()}`:"ESSE DIA JÁ TEM ESSAS AULAS")}
+
+/* ===== os Inventors pagaram: cria a entrada na Revolut (ou liga a uma que já exista) ===== */
+function auCand(s){const e=auEnd(s),linked=new Set(Object.values(auCfg().paid||{}).map(x=>x.id)),c=auCatId();
+  return flows().filter(t=>t.type==="in"&&!linked.has(t.id)&&t.date>=addDays(e,-15)&&t.date<=addDays(e,25)&&(/inventor/.test(norm(t.place+" "+t.notes))||(c&&t.cat===c))).sort((a,b)=>b.date.localeCompare(a.date))}
+function auPaySheet(){const s=S.invP||auStart(today()),p=auPer(s),cand=auCand(s),f=S.aup||(S.aup={s,acc:auAcc()});
+  openSheet(`<div class="shead"><b>💰 OS INVENTORS PAGARAM</b><button class="x" data-act="close">X</button></div>
+  <div class="note" style="margin:0">${esc(auLabel(s))} · ${p.on.length} aulas ${fmt(p.v)} + transporte ${fmt(p.tr)}</div>
+  <input class="amount" id="ap_v" inputmode="decimal" value="${esc(toInput(f.amt??p.tot))}" autocomplete="off" aria-label="Valor que entrou">
+  <div class="note" style="margin:0">Se entrou um valor diferente, corrige aqui.</div>
+  <div><span class="lbl">Dia em que entrou</span><input type="date" id="ap_d" value="${esc(f.date||today())}"></div>
+  <div><span class="lbl">Conta</span><div class="chips">${availAccs().map(a=>`<button class="chip${a.id===f.acc?" on":""}" data-act="appick" data-v="${esc(a.id)}">${esc(a.name)}</button>`).join("")}</div></div>
+  ${cand.length?`<div class="board" style="background:#FFF3B8;display:grid;gap:8px"><span class="lbl" style="margin:0">Já está na Carteira?</span>
+    ${cand.map(t=>`<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center"><span>${esc(t.place||"Entrada")} · ${fmt(t.amt)} · ${esc(dayLabel(t.date))} · ${esc(accName(t.acc))}</span><button class="btn small" data-act="aplink" data-id="${esc(t.id)}">É ESTA</button></div>`).join("")}
+    <div class="note" style="margin:0">Se o pagamento já entrou (extrato ou registo teu), liga-o em vez de criar outro, para não ficar a dobrar.</div></div>`:""}
+  <button class="save" data-act="apsave">CRIAR ENTRADA · +30 XP</button>`)}
+function auPayRead(){const f=S.aup;f.amt=parseAmt($("#ap_v").value);f.date=$("#ap_d").value||today()}
+function auPaySave(ev){auPayRead();const f=S.aup,s=f.s;if(!f.amt){toast("FALTA O VALOR");return}if(!f.acc){toast("ESCOLHE A CONTA");return}
+  let c=auCatId();if(!c){c="inventors";if(!S.cats.has(c))send({a:"cat",row:catRow({id:c,name:"Inventors",emoji:"🤖",color:"#2F7DE1",kind:"in",budget:0,order:Math.max(0,...[...S.cats.values()].map(x=>x.order||0))+1})})}
+  const r=auRec(),useR=r&&r.proximo&&Math.abs(diffDays(r.proximo,f.date))<=20;
+  const t={id:useR?`r_${r.id}_${r.proximo}`:genId(),type:"in",amt:f.amt,place:"Inventors",cat:c,acc:f.acc,method:"Transferência",date:f.date,time:f.date===today()?nowTime():"",notes:"Aulas "+auLabel(s),src:"manual",review:false,created:Date.now()};
+  send({a:"put",row:toRow(t)});if(useR)send({a:"recur",row:{...r,proximo:nextMonth(r.proximo,Number(r.dia))}});
+  saveAuCfg({paid:{...(auCfg().paid||{}),[s]:{id:t.id,amt:t.amt,date:t.date,acc:t.acc,own:true}}});
+  closeSheet();S.aup=null;const g=game();award(g,30,3,ev);saveGame(g);fanfare();S._party=Date.now();setTimeout(()=>toast(`💰 +${fmt(t.amt)} DOS INVENTORS NA ${accName(t.acc).toUpperCase()}`),300)}
+function auPayLink(id,ev){const t=S.tx.get(id),s=S.aup?.s;if(!t||!s)return;if(t.review)send({a:"put",row:toRow({...t,review:false})});
+  saveAuCfg({paid:{...(auCfg().paid||{}),[s]:{id:t.id,amt:t.amt,date:t.date,acc:t.acc,own:false}}});
+  closeSheet();S.aup=null;const g=game();award(g,30,3,ev);saveGame(g);fanfare();setTimeout(()=>toast(`💰 LIGADO · ${fmt(t.amt)} DOS INVENTORS`),300)}
+function auUnpay(){const s=S.invP||auStart(today()),pd=auPaid(s);if(!pd)return;if(S.auArm!==s){S.auArm=s;render();return}S.auArm=null;
+  if(pd.own&&S.tx.has(pd.id))send({a:"del",id:pd.id});const paid={...(auCfg().paid||{})};delete paid[s];saveAuCfg({paid});toast(pd.own?"↩ DESMARCADO · ENTRADA APAGADA":"↩ DESMARCADO")}
+
+/* ===== cliques, escrita e mudanças deste separador ===== */
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el||el.disabled)return;const a=el.dataset.act;if(!/^(au|ap)/.test(a))return;
+  if(a!=="auunpay"&&S.auArm){S.auArm=null}
+  if(a==="auprev"||a==="aunext"){const s=S.invP||auStart(today());S.invP=`${addMonths(ymOf(s),a==="auprev"?-1:1)}-25`;render()}
+  else if(a==="auadd"){if(!S.ready)return;const s=S.invP||auStart(today()),td=today();S.au=auNew(td>=s&&td<=auEnd(s)?td:s,"");auForm()}
+  else if(a==="auedit"){const t=S.tx.get(el.dataset.id);if(!t)return;S.au={id:t.id,date:t.date,time:t.time||"",end:t.to||"",place:t.place,act:t.cat,amt:t.amt,tr:auT(t),on:auOn(t),note:t.notes||""};auForm()}
+  else if(a==="autog"){e.stopPropagation();const t=S.tx.get(el.dataset.id);if(!t)return;const on=!auOn(t);send({a:"put",row:toRow({...t,method:on?"":"nao"})});on?coinSnd():outSnd();toast(on?"✓ CONTA PARA O TOTAL":"✗ FICA FORA DO TOTAL")}
+  else if(a==="aupick"){auRead();const f=S.au,k=el.dataset.k,v=el.dataset.v;
+    if(k==="on")f.on=v==="1";else if(k==="place"){f.place=v;$("#au_l").value="";if(!f.id)auApply(f)}else if(k==="act"){f.act=v;$("#au_a").value=""}auForm()}
+  else if(a==="ausave")auSave(!!el.dataset.more,e);
+  else if(a==="audup"){auRead();const f=S.au;S.au={...f,id:null,date:addDays(f.date,7),on:true,note:"",arm:false,hint:""};auForm();toast("CÓPIA · ESCOLHE O DIA E GUARDA")}
+  else if(a==="audel"){if(!S.au.arm){auRead();S.au.arm=true;auForm();return}const id=S.au.id;closeSheet();S.au=null;send({a:"del",id});toast("AULA APAGADA")}
+  else if(a==="auimp"){if(S.ready)auImpSheet()}
+  else if(a==="auimpok")auImport();
+  else if(a==="auday"){S.aud=el.dataset.d;auDaySheet()}
+  else if(a==="aucdq"){$("#au_cd").value=addDays(S.aud,+el.dataset.n)}
+  else if(a==="aucdok")auCopyDay();
+  else if(a==="aupay"){const s=S.invP||auStart(today());S.aup={s,acc:auAcc()};auPaySheet()}
+  else if(a==="appick"){auPayRead();S.aup.acc=el.dataset.v;auPaySheet()}
+  else if(a==="apsave")auPaySave(e);
+  else if(a==="aplink")auPayLink(el.dataset.id,e);
+  else if(a==="auunpay")auUnpay();
+});
+document.addEventListener("input",e=>{if(e.target.id==="au_imp")auImpPrev()});
+document.addEventListener("change",e=>{const id=e.target.id;if(!S.au||S.au.id||!$("#au_d"))return;
+  if(id==="au_l"&&e.target.value.trim()){auRead();auApply(S.au);auSync();$$('#sheet .chip[data-act="aupick"][data-k="place"]').forEach(c=>c.classList.remove("on"))}
+  else if(id==="au_d"&&S.au.place){auRead();auApply(S.au);auSync()}});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("au")&&e.target.dataset.act==="auedit"){e.preventDefault();e.target.click()}});
+
 
 /* ============ eventos ============ */
 document.addEventListener("click",async e=>{
