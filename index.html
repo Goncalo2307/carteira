@@ -275,8 +275,8 @@ const METHODS=["Apple Pay","MB WAY","Cartão","Transferência","Dinheiro","Onlin
 const BET=/betano|gobet|placard|betclic|bwin|solverde|esc ?online|casino|lebull|nossa ?aposta|betway|22bet|pokerstars|luckia|bacana|moosh/;
 const S={api:LS.get("api",""),tx:new Map(),accounts:new Map(),cats:new Map(),recur:new Map(),game:{},config:{},
   ready:false,tab:"inicio",month:ymOf(today()),form:null,visited:{},q:"",fAcc:"",fCat:"",fTrip:"",queue:LS.get("fila",[]),sync:"—"};
-const fromRow=r=>({id:r.id,type:r.tipo,amt:Math.round(Math.abs(Number(String(r.valor).replace(",","."))||0)*100),date:r.data,time:r.hora||"",place:r.loja||"",cat:r.categoria||"",acc:r.conta||"",to:r.para||"",method:r.metodo||"",src:r.origem||"manual",review:r.rever==="1",created:Number(r.criado)||0,card:r.cartao||"",loc:r.morada||"",notes:r.notas||""});
-const toRow=t=>({id:t.id,data:t.date,hora:t.time||"",tipo:t.type,valor:+(t.amt/100).toFixed(2)*(t.type==="adjust"&&t.neg?-1:1),loja:t.place||"",categoria:t.cat||"",conta:t.acc||"",para:t.to||"",metodo:t.method||"",origem:t.src||"manual",rever:t.review?"1":"",criado:String(t.created||Date.now()),cartao:t.card||"",morada:t.loc||"",notas:t.notes||""});
+const fromRow=r=>({id:r.id,type:r.tipo,amt:Math.round(Math.abs(Number(String(r.valor).replace(",","."))||0)*100),date:r.data,time:r.hora||"",place:r.loja||"",cat:r.categoria||"",acc:r.conta||"",to:String(r.para||"").replace(/^'/,""),method:r.metodo||"",src:r.origem||"manual",review:r.rever==="1",created:Number(r.criado)||0,card:String(r.cartao||"").replace(/^'/,""),loc:r.morada||"",notes:r.notas||""});
+const toRow=t=>({id:t.id,data:t.date,hora:t.time||"",tipo:t.type,valor:+(t.amt/100).toFixed(2)*(t.type==="adjust"&&t.neg?-1:1),loja:t.place||"",categoria:t.cat||"",conta:t.acc||"",para:t.type==="aula"&&t.to?"'"+t.to:t.to||"",metodo:t.method||"",origem:t.src||"manual",rever:t.review?"1":"",criado:String(t.created||Date.now()),cartao:t.type==="aula"&&t.card?"'"+t.card:t.card||"",morada:t.loc||"",notas:t.notes||""});
 function load(d){
   S.tx.clear();for(const r of d.tx||[]){const t=fromRow(r);if(r.tipo==="adjust")t.amt=Math.round((Number(String(r.valor).replace(",","."))||0)*100);S.tx.set(t.id,t)}
   S.accounts.clear();for(const r of d.contas||[])S.accounts.set(r.id,{id:r.id,name:r.nome,kind:r.tipo,opening:Math.round(Number(r.saldo_inicial)*100)||0,openDate:r.data_inicial,openAt:Number(r.criado_em)||0,color:r.cor,order:Number(r.ordem)||0,hidden:r.oculta==="1"});
@@ -484,7 +484,7 @@ function vInicio(){const t=today(),ym=ymOf(t),rsv=reservedTotal(),tot=availTotal
     <div class="sub">Até ${dn(np.until)}${np.pay?` (${esc(np.pay.nome)})`:""} · faltam ${np.days} dia${np.days===1?"":"s"}${np.dueAmt?` · já desconta ${fmt(np.dueAmt)} de fixos: ${np.due.map(r=>esc(r.nome.split(" (")[0])).join(", ")}`:""}${np.gneed?` · e ${fmt(np.gneed)} para objetivos`:""}</div></div>
   ${goalsSec()}
   ${walletCard()}${auHome()}${betLine()}
-  ${inv.length?`<button class="invl" data-tab="saldo"><span>📈 Investimentos</span><span><b style="font-weight:400">${fmt(it)}</b>${g.length?` <span class="${gain>=0?"up":"down"}">${sg(gain)}</span>`:""}</span></button>`:""}
+  ${inv.length?(ib=>`<button class="invl" data-tab="saldo" style="display:block"><span style="display:flex;justify-content:space-between;gap:10px"><span>📈 Investimentos</span><b style="font-weight:400">${fmt(ib.total)}</b></span><span style="display:flex;justify-content:space-between;gap:10px;font-size:17px;color:var(--dim);margin-top:2px"><span>Investi ${fmt(ib.cost)}</span><span class="${ib.ret>=0?"up":"down"}">Retorno ${sgn(ib.ret)} (${pctS(ib.pct)})</span></span></button>`)(invBreak()):""}
   ${(f=>f.length?`<h2>Favoritos <small>1 toque</small></h2><div class="favs" aria-label="Favoritos">${f.map(x=>`<button class="fav" data-act="fav" data-id="${esc(x.id)}">${esc(cat(x.cat).emoji||"•")} ${esc(x.place)} <b>${fmt(x.amt)}</b></button>`).join("")}</div>`:"")(favs())}
   <div class="quick"><input id="qtext" placeholder="Ex.: 3,20 café bpi" autocomplete="off" enterkeyhint="send" aria-label="Registo rápido"><button class="btn" data-act="quick">OK</button></div>
   <div class="hint">Escreve ou dita: valor + sítio + conta. Guarda logo.</div>
@@ -555,10 +555,21 @@ function vLista(){const q=(S.q||"").trim();
   <select id="lcat" aria-label="Filtrar por categoria"><option value="">Todas as categorias</option><optgroup label="Gastos">${cats("out").map(c=>`<option value="${esc(c.id)}"${S.fCat===c.id?" selected":""}>${esc(c.emoji+" "+c.name)}</option>`).join("")}</optgroup><optgroup label="Entradas">${cats("in").map(c=>`<option value="${esc(c.id)}"${S.fCat===c.id?" selected":""}>${esc(c.emoji+" "+c.name)}</option>`).join("")}</optgroup></select></div>
   <div id="lres">${listBody()}</div>`}
 const isInv=a=>a.kind==="investimento"||!!invOf(a.id);
+/* carteira de investimentos: total = o que investi + retorno (o investido só muda quando meto dinheiro novo) */
+function invBreak(){const l=accs().filter(isInv);let total=0,cost=0;for(const a of l){const iv=invVal(a.id),b=balance(a.id);total+=b;cost+=iv?iv.cost:b}return{n:l.length,total,cost,ret:total-cost,pct:cost?(total-cost)/cost:0}}
+const sgn=v=>(v>=0?"+":"−")+fmt(Math.abs(v)),pctS=p=>(p>=0?"+":"−")+Math.abs(p*100).toFixed(2).replace(".",",")+"%";
+function inv30(id){const inv=invOf(id);if(!inv)return null;const d=addDays(today(),-30),a=idx(inv,d),b=idx(inv);return a&&b?{p:b/a-1,a,b}:null}
+function fv(v,m,r,yrs){const i=Math.pow(1+r,1/12)-1,n=yrs*12;return v*Math.pow(1+r,yrs)+(i?m*(Math.pow(1+i,n)-1)/i:m*n)}
+function invProj(id,iv){const rc=[...S.recur.values()].find(r=>r.ativo==="1"&&r.tipo==="transfer"&&r.para===id);if(!rc)return"";const m=Math.round(Number(rc.valor)*100),v=iv.v,put=iv.cost+m*60,p=inv30(id);
+  const rows=[["😟 Pessimista","4% ao ano",.04],["🙂 Médio","7% ao ano",.07],["🤩 Otimista","10% ao ano",.10]];
+  if(p){const r=Math.pow(1+p.p,365/30)-1;rows.push(["📅 Ritmo dos últimos 30 dias",`${pctS(r)} ao ano`,r])}
+  return`<h2 style="margin:6px 0 0">Daqui a 5 anos <small>${fmt0(m)}/mês</small></h2><div class="board"><div class="kv">${rows.map(([n,d,r])=>{const f=Math.round(fv(v,m,r,5));return`<span>${n}<br><span class="dim" style="font-size:16px">${d}</span></span><b>${fmt0(f)}<br><span class="${f-put>=0?"up":"down"}" style="font-size:16px">${f-put>=0?"+":"−"}${fmt0(Math.abs(f-put))} de retorno</span></b>`}).join("")}</div>
+  <div class="note" style="margin:8px 0 0">Do teu bolso: ${fmt0(put)} (o que já tens investido + ${fmt0(m)} × 60 meses). Estimativa, não garantida: há anos a perder pelo caminho.</div></div>`}
+function invScore(t,c,r,pc){return`<div class="score"><div><span>TOTAL</span><b>${fmt(t)}</b></div><div><span>INVESTI</span><b>${fmt(c)}</b></div><div><span>RETORNO</span><b class="${r>=0?"up":"down"}">${sgn(r)}</b><em class="${r>=0?"up":"down"}" style="font-style:normal;font-size:17px;display:block">${pctS(pc)}</em></div></div>`}
 function invCard(a){const iv=invVal(a.id),inv=invOf(a.id);if(!iv)return`<button class="acc" data-act="acc" data-id="${esc(a.id)}"><i style="background:${esc(a.color||"#888")}"></i><span>${esc(a.name)}</span><b>${fmt(ledger(a.id))}</b></button>`;
   const up=iv.gain>=0,px=S.prices[inv.legs[0].y]||{};
   return`<button class="inv" data-act="inv" data-id="${esc(a.id)}"><div class="top"><span>📈 ${esc(a.name)}</span><b>${fmt(iv.v)}</b></div>
-  <div class="sub"><span>Investido ${fmt(iv.cost)}</span><span class="g ${up?"up":"down"}">${up?"▲ +":"▼ −"}${fmt(Math.abs(iv.gain))} (${up?"+":"−"}${Math.abs(iv.pct*100).toFixed(2).replace(".",",")}%)</span></div>
+  <div class="sub"><span>Toca para ver o investido e o retorno</span><span class="g ${up?"up":"down"}">${up?"▲":"▼"} ${pctS(iv.pct)}</span></div>
   <div class="sub"><span>${esc(inv.label||"")}</span><span>${px.at?"preço "+agoLabel(px.at):"à espera do preço"}</span></div></button>`}
 function agoLabel(iso){const d=new Date(iso),m=Math.round((Date.now()-d)/60000);return m<60?`há ${Math.max(1,m)} min`:m<1440?`há ${Math.round(m/60)} h`:`a ${d.getDate()}/${d.getMonth()+1}`}
 function vSaldo(){const list=accs(),tot=list.reduce((s,a)=>s+balance(a.id),0),cash=list.filter(a=>!isInv(a)),inv=list.filter(isInv),ct=cash.reduce((s,a)=>s+balance(a.id),0),it=inv.reduce((s,a)=>s+balance(a.id),0);
@@ -566,7 +577,7 @@ function vSaldo(){const list=accs(),tot=list.reduce((s,a)=>s+balance(a.id),0),ca
   return`<div class="board hiscore"><div class="px">HI-SCORE · PATRIMÓNIO</div><b>${fmt(tot)}</b></div>
   <div class="split"><div><span>💶 DINHEIRO</span><b>${fmt0(ct)}</b></div><div><span>📈 INVESTIMENTOS</span><b>${fmt0(it)}</b>${g.length?`<em class="${gain>=0?"up":"down"}" style="font-size:18px;font-style:normal;display:block">${gain>=0?"▲ +":"▼ −"}${fmt(Math.abs(gain))}${cost?` · ${(gain/cost*100).toFixed(2).replace(".",",")}%`:""}</em>`:""}</div></div>
   <button class="save" style="margin-top:14px;background:var(--coin);color:var(--edge)" data-act="transfer">⇄ PASSAR DINHEIRO</button>
-  ${inv.length?`<h2>📈 Investimentos <small>atualiza sozinho</small></h2>${inv.map(invCard).join("")}`:""}<h2>💶 Dinheiro</h2>
+  ${inv.length?(ib=>`<h2>📈 Investimentos <small>atualiza sozinho</small></h2><div class="board" style="margin-bottom:12px"><span class="lbl" style="margin:0 0 8px">CARTEIRA DE INVESTIMENTOS</span>${invScore(ib.total,ib.cost,ib.ret,ib.pct)}<div class="note" style="margin:8px 0 0">O que investiste só muda quando metes dinheiro novo. O retorno é o que sobe ou desce.</div></div>${inv.map(invCard).join("")}`)(invBreak()):""}<h2>💶 Dinheiro</h2>
   ${cash.map(a=>`<button class="acc" data-act="acc" data-id="${esc(a.id)}"><i style="background:${esc(a.color||"#888")}"></i><span>${esc(a.name)}</span><b class="${balance(a.id)<0?"down":""}">${fmt(balance(a.id))}</b></button>`).join("")}
   <div class="hint">Toca numa conta para acertar com o saldo real do banco.</div>
   ${(tl=>tl.length?`<h2>Transferências</h2>${tl.map(t=>`<button class="row" data-act="tredit" data-id="${esc(t.id)}"><span class="ic">⇄</span><span style="min-width:0"><span class="t1">${esc(accName(t.acc))} → ${esc(accName(t.to))}</span><span class="t2">${dayLabel(t.date)}${t.time?" · "+esc(t.time):""}${t.place&&t.place!=="Transferência"?" · "+esc(t.place):""}</span></span><span class="amt">${fmt(t.amt)}</span></button>`).join("")}`:"")(txs().filter(t=>t.type==="transfer"&&!t.review).sort((a,b)=>skey(b).localeCompare(skey(a))).slice(0,8))}`}
@@ -616,18 +627,24 @@ function pxAt(y,date){const h=(S.prices||{})[y];if(!h)return null;if(!date||date
 function idx(inv,date){let I=inv.cash||0;for(const l of inv.legs||[]){const p=pxAt(l.y,date);if(p==null)return null;I+=l.w*(l.b?p/l.b:p)}return I}
 function invVal(id){const inv=invOf(id);if(!inv||inv.U==null)return null;const In=idx(inv);if(!In)return null;let U=inv.U,cost=Math.round(inv.refCost*100);
   for(const t of S.tx.values()){if((t.created||0)<=inv.refAt||t.review)continue;const s=t.type==="transfer"?(t.to===id?1:t.acc===id?-1:0):t.type==="in"&&t.acc===id?1:t.type==="out"&&t.acc===id?-1:0;if(!s)continue;const I=idx(inv,t.date)||In;
-    if(s<0){const val=U*In*100;cost-=val>0?Math.round(cost*Math.min(1,t.amt/val)):t.amt}else cost+=t.amt;U+=s*(t.amt/100)/I}
+    if(s<0){const val=U*In*100;cost-=val>0?Math.round(cost*Math.min(1,t.amt/val)):t.amt}else if(t.cat!=="cashback")cost+=t.amt;U+=s*(t.amt/100)/I}
   const v=Math.round(U*In*100);return{v,cost,gain:v-cost,pct:cost?(v-cost)/cost:0,U,In}}
 function invSheet(id){const a=S.accounts.get(id),inv=invOf(id),iv=invVal(id);
   openSheet(`<div class="shead"><b>📈 ${esc(a.name)}</b><button class="x" data-act="close">X</button></div>
-  <div class="score"><div><span>VALE HOJE</span><b>${fmt(iv.v)}</b></div><div><span>INVESTIDO</span><b>${fmt(iv.cost)}</b></div><div><span>GANHO</span><b class="${iv.gain>=0?"up":"down"}">${iv.gain>=0?"+":"−"}${fmt(Math.abs(iv.gain))}</b></div></div>
+  <div class="board" style="text-align:center"><span class="lbl" style="margin:0">VALOR TOTAL</span><div style="font-size:48px;line-height:1.1">${fmt(iv.v)}</div>
+  <div class="split" style="margin-top:10px;text-align:left"><div><span>INVESTI</span><b>${fmt(iv.cost)}</b></div><div><span>RETORNO</span><b class="${iv.gain>=0?"up":"down"}">${sgn(iv.gain)}</b></div></div>
+  <div class="${iv.gain>=0?"up":"down"}" style="font-size:34px;margin-top:8px">${iv.gain>=0?"▲":"▼"} ${pctS(iv.pct)}</div>
+  ${(p=>p?`<div class="note" style="margin:6px 0 0">Últimos 30 dias: <b class="${p.p>=0?"up":"down"}">${pctS(p.p)}</b></div>`:"")(inv30(id))}</div>
   <div class="board"><div class="kv">${inv.legs.map(l=>{const p=S.prices[l.y]||{};return`<span>${esc(l.n||l.y)}${l.b?` <span class="dim">(${Math.round(l.w*100)}% da referência)</span>`:""}</span><b>${p.p?fmt(Math.round(p.p*100)):"—"}</b>`}).join("")}
   ${inv.legs.length===1&&!inv.legs[0].b?`<span>Unidades</span><b>${iv.U.toFixed(4).replace(".",",")}</b>`:""}</div>
   <div class="note" style="margin:8px 0 0">${esc(inv.how||"")}</div></div>
-  <h2 style="margin:6px 0 0">Acertar com a app do banco</h2>
-  <div class="two"><div><span class="lbl">Valor hoje</span><input id="iv_v" inputmode="decimal" placeholder="${esc(toInput(iv.v))}"></div><div><span class="lbl">Ganho total (opcional)</span><input id="iv_g" inputmode="decimal" placeholder="ex.: +15,94 ou -1,05"></div></div>
-  <button class="save" data-act="invfix" data-id="${esc(id)}">ACERTAR</button>
-  <div class="note">Só precisas disto se o valor ficar diferente do banco. A partir daqui volta a atualizar sozinho.</div>`)}
+  ${invProj(id,iv)}
+  <button class="save" style="background:var(--green)" data-act="invadd" data-id="${esc(id)}">➕ METI MAIS DINHEIRO</button>
+  <div class="note" style="margin-top:-4px">É a única forma de mudar o que investiste (${fmt(iv.cost)}).</div>
+  <h2 style="margin:6px 0 0">Acertar o retorno com o banco</h2>
+  <div class="two"><div><span class="lbl">Valor total hoje</span><input id="iv_v" inputmode="decimal" placeholder="${esc(toInput(iv.v))}"></div><div><span class="lbl">ou Retorno</span><input id="iv_g" inputmode="decimal" placeholder="ex.: +3,67 ou -1,05"></div></div>
+  <button class="save" data-act="invfix" data-id="${esc(id)}">ACERTAR RETORNO</button>
+  <div class="note">Escreve um dos dois. Muda só o retorno e o total; o que investiste fica igual. Depois volta a atualizar sozinho com o preço.</div>`)}
 
 /* ============ calculados (juros e saveback da Trade Republic) ============ */
 const isInvAcc=id=>{const a=S.accounts.get(id);return!!a&&(a.kind==="investimento"||!!invOf(id))};
@@ -917,6 +934,7 @@ const auOn=t=>t.method!=="nao";
 const auT=t=>Math.round((Number(String(t.card||"").replace(",","."))||0)*100);
 const auSeed=l=>AU_SEED.find(s=>norm(s.l)===norm(l));
 const auZone=l=>{const s=auSeed(l);if(s&&s.z)return s.z;const n=norm(l);return/rio tinto|gondomar|sao caetano|cabanas|soutelo/.test(n)?"rt":n};
+const auZoneOf=(l,a)=>/digit/i.test(a||"")?"digitall":auZone(l); /* DigitALL: 1 transporte por dia, seja qual for a escola; os outros locais contam à parte */
 const auShort=l=>String(l||"").replace(/^Escola Básica n\.?\s*º?\s*1 de /i,"EB1 ").replace(/^Escola Básica de /i,"EB ").replace(/,\s*Gondomar$/i,"")
   .replace(/^Externato da Misericórdia de Nossa Senhora do Rosário de /i,"Externato ").replace(/^Colégio Nossa Senhora da /i,"Col. ")||"Sem local";
 const auIcon=a=>/digit/i.test(a)?"🤖":/club/i.test(a)?"🧩":/workshop/i.test(a)?"🛠️":"🎓";
@@ -946,7 +964,7 @@ function auSuggest(local,date,except){const n=norm(local),seed=auSeed(local);
   const wd=new Date(date+"T12:00:00").getDay(),slots=[],seen=new Set();
   for(const t of hist)if(t.time&&!seen.has(t.time)&&new Date(t.date+"T12:00:00").getDay()===wd){seen.add(t.time);slots.push(t)}
   slots.sort((a,b)=>a.time.localeCompare(b.time));const slot=slots.find(t=>!used.has(t.time)),ref=slot||hist[0];
-  const z=auZone(local),paidTr=day.some(t=>auOn(t)&&auZone(t.place)===z&&auT(t)>0),htr=hist.find(t=>auT(t)>0);
+  const z=auZoneOf(local,ref?.cat||seed?.a),paidTr=day.some(t=>auOn(t)&&auZoneOf(t.place,t.cat)===z&&auT(t)>0),htr=hist.find(t=>auT(t)>0);
   return{act:ref?.cat||seed?.a||"",amt:ref?.amt||seed?.v||1600,time:slot?.time||"",end:slot?.to||"",tr:paidTr?0:htr?auT(htr):seed?seed.t:0,trDone:paidTr}}
 function auNew(date,place){const f={id:null,date:date||today(),time:"",end:"",place:place||"",act:"",amt:1600,tr:0,on:true,note:""};if(place)auApply(f);return f}
 function auApply(f){const s=auSuggest(f.place,f.date,f.id);f.act=s.act||f.act;f.amt=s.amt;f.tr=s.tr;if(s.time){f.time=s.time;f.end=s.end}
@@ -1120,6 +1138,8 @@ document.addEventListener("click",async e=>{
     <input class="amount" id="lim" inputmode="decimal" value="${esc(toInput(weekLimit()))}"><button class="save" data-act="setlimit">GUARDAR</button><button class="del" style="border-color:var(--edge);color:var(--ink)" data-act="autolimit">USAR SUGESTÃO AUTOMÁTICA</button>`)}
   else if(a==="setlimit"){const v=parseAmt($("#lim").value);if(!v)return;const g=game();g.weekLimit=v;saveGame(g);closeSheet()}
   else if(a==="autolimit"){const g=game();g.weekLimit=0;saveGame(g);closeSheet()}
+  else if(a==="invadd"){const id=el.dataset.id,l=txs().filter(t=>t.type==="transfer"&&t.to===id).sort((a,b)=>skey(b).localeCompare(skey(a)))[0];
+    S.tf={id:null,amt:0,from:l?l.acc:bankDef(),to:id,note:"Investimento",date:today(),time:nowTime(),title:"➕ METI MAIS DINHEIRO"};trForm()}
   else if(a==="catview"){S.fCat=el.dataset.id;S.q="";S.fTrip="";S.fAcc="";S.tab="lista";scrollTo(0,0);render()}
   else if(a==="goalnew"){S.goal={id:null,e:"",n:"",meta:0,ate:"",g:0};goalForm()}
   else if(a==="goaledit"){const g=goals().find(x=>x.id===el.dataset.id);if(!g)return;S.goal={...g};goalForm()}
@@ -1197,9 +1217,9 @@ document.addEventListener("click",async e=>{
       send({a:"cat",row:{id:c.id,nome:c.name,emoji:c.emoji,cor:c.color,tipo:c.kind,limite:+(v/100).toFixed(2),ordem:c.order}})});closeSheet();toast(n?"🎯 LIMITES GUARDADOS":"SEM ALTERAÇÕES")}
   else if(a==="prev"){S.month=addMonths(S.month,-1);render()}else if(a==="next"){S.month=addMonths(S.month,1);render()}
   else if(a==="inv")invSheet(el.dataset.id);
-  else if(a==="invfix"){const id=el.dataset.id,inv=invOf(id),iv=invVal(id),vs=$("#iv_v").value.trim(),gs=$("#iv_g").value.trim();if(!vs){toast("ESCREVE O VALOR DE HOJE");return}
-    const v=parseAmt(vs)/100,g=gs?parseAmt(gs)/100*(/^\s*[-−]/.test(gs)?-1:1):null;
-    const ni={...inv,U:v/iv.In,refAt:Date.now(),refCost:g==null?iv.cost/100:+(v-g).toFixed(2)};
+  else if(a==="invfix"){const id=el.dataset.id,inv=invOf(id),iv=invVal(id),vs=$("#iv_v").value.trim(),gs=$("#iv_g").value.trim();if(!vs&&!gs){toast("ESCREVE O VALOR TOTAL OU O RETORNO");return}
+    const g=gs?parseAmt(gs)/100*(/^\s*[-−]/.test(gs)?-1:1):null,v=vs?parseAmt(vs)/100:iv.cost/100+g;
+    const ni={...inv,U:v/iv.In,refAt:Date.now(),refCost:+(iv.cost/100).toFixed(2)};
     send({a:"config",config:{...S.config,invest:(S.config.invest||[]).map(x=>x.acc===id?ni:x)}});closeSheet();toast("📈 INVESTIMENTO ACERTADO")}
   else if(a==="acc"){const c=S.accounts.get(el.dataset.id);openSheet(`<div class="shead"><b>${esc(c.name)}</b><button class="x" data-act="close">X</button></div>
     <div class="board"><span class="lbl">Saldo na Carteira</span><div style="font-size:40px">${fmt(balance(c.id))}</div></div><div><span class="lbl">Saldo real no banco</span><input id="real" inputmode="decimal" placeholder="0,00 €"></div>
