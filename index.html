@@ -974,9 +974,9 @@ const auPlanGet=id=>{const[,d]=id.split("|");return auPlanned(d,d).find(t=>t.id=
 function auTrFor(t,ex){const z=auZoneOf(t.place,t.cat),seed=auSeed(t.place);
   const has=aulas().some(x=>x.id!==ex&&x.date===t.date&&auOn(x)&&auZoneOf(x.place,x.cat)===z&&auT(x)>0);
   if(has)return 0;const h=aulas().filter(x=>norm(x.place)===norm(t.place)&&auT(x)>0).sort((a,b)=>skey(b).localeCompare(skey(a)))[0];return h?auT(h):seed?seed.t:0}
-function auPer(s){const e=auEnd(s),td=today(),pl=auPlanned(s,e),l=[...aulas().filter(t=>t.date>=s&&t.date<=e),...pl].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),on=l.filter(auOn);
+function auPer(s){const e=auEnd(s),td=today(),pl=auPlanned(s,e<td?e:td),fut=e>td?auPlanned(addDays(td,1),e):[],l=[...aulas().filter(t=>t.date>=s&&t.date<=e),...pl].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),on=l.filter(auOn);
   const v=on.reduce((x,t)=>x+t.amt,0),tr=on.reduce((x,t)=>x+auT(t),0),done=on.filter(t=>t.date<=td).reduce((x,t)=>x+t.amt+auT(t),0);
-  return{s,e,l,on,v,tr,tot:v+tr,done,later:v+tr-done,off:l.length-on.length-pl.length,pl,pv:pl.reduce((x,t)=>x+t.amt,0),due:pl.filter(t=>t.date<=td).length}}
+  return{s,e,l,on,v,tr,tot:v+tr,done,later:v+tr-done,off:l.length-on.length-pl.length,pl,due:pl.length,fn:fut.length,fv:fut.reduce((x,t)=>x+t.amt,0)}}
 const auCfg=()=>S.config.inventors||{};
 const auPaid=s=>(auCfg().paid||{})[s];
 function saveAuCfg(c){send({a:"config",config:{...S.config,inventors:{...auCfg(),...c}}})}
@@ -1019,7 +1019,7 @@ function vAulas(){const s=S.invP||auStart(today()),p=auPer(s),pd=auPaid(s),em=ME
   <div class="board autop"><span class="px">${pd?"✓ PAGO PELOS INVENTORS":"🤖 VAIS RECEBER DOS INVENTORS"}</span><b class="bigv up">${fmt(pd?pd.amt:p.tot)}</b>
     <div class="mon"><div><span>AULAS</span><b>${p.on.length}</b></div><div><span>AULAS €</span><b class="up">${fmt0(p.v)}</b></div><div><span>TRANSPORTE</span><b class="up">${fmt(p.tr)}</b></div></div>
     <div class="note" style="margin:8px 0 0">${pd?`Entrou a ${dn(pd.date)} na ${esc(accName(pd.acc))}.${diff?` ⚠️ As aulas agora somam ${fmt(p.tot)} (${diff>0?"+":"−"}${fmt(Math.abs(diff))} do que entrou).`:""}`
-      :`${p.later>0?`Já dado ${fmt(p.done)} · ainda por dar ${fmt(p.later)}. `:""}Pagam no fim de ${esc(em)} e entra na Revolut.`}${p.off?` ${p.off} aula${p.off>1?"s":""} fora do total.`:""}${p.pl.length?`<br>📅 ${p.pl.length} planeada${p.pl.length>1?"s":""} (mais ${fmt0(p.pv)} se as deres)${p.due?` · <b>⏳ ${p.due} por confirmar</b>`:""}.`:""}</div></div>
+      :`${p.later>0?`Já dado ${fmt(p.done)} · ainda por dar ${fmt(p.later)}. `:""}Pagam no fim de ${esc(em)} e entra na Revolut.`}${p.off?` ${p.off} aula${p.off>1?"s":""} fora do total.`:""}${p.due?`<br><b>⏳ ${p.due} aula${p.due>1?"s":""} por confirmar</b>.`:""}${p.fn?`<br>📅 Até ${+p.e.slice(8)}/${+p.e.slice(5,7)} ainda tens ${p.fn} aula${p.fn>1?"s":""} no horário (mais ${fmt0(p.fv)} se as deres). Vão aparecendo no próprio dia.`:""}</div></div>
   <div class="tools"><button class="btn" data-act="auadd">+ AULA</button><button class="btn alt" data-act="auimp">📋 COLAR LISTA</button></div>
   ${p.on.length?pd?`<button class="btn alt" style="width:100%;margin-top:8px" data-act="auunpay">${S.auArm===s?"TOCA OUTRA VEZ PARA DESMARCAR":"↩ DESMARCAR PAGO"}</button>`
     :`<button class="btn green" style="width:100%;margin-top:8px" data-act="aupay">💰 OS INVENTORS PAGARAM</button>`:""}
