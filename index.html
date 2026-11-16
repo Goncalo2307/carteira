@@ -930,7 +930,7 @@ const AU_SEED=[
   {l:"Externato da Misericórdia de Nossa Senhora do Rosário de Unhão",a:"Club 6-12",v:1600,t:2060}];
 const AU_ACTS=["DigitALL","Club 5","Club 6-12","Club 10-12","Workshop"];
 const aulas=()=>txs().filter(t=>t.type==="aula");
-const auOn=t=>t.method!=="nao";
+const auOn=t=>t.method!=="nao"&&t.method!=="plan";
 const auT=t=>Math.round((Number(String(t.card||"").replace(",","."))||0)*100);
 const auSeed=l=>AU_SEED.find(s=>norm(s.l)===norm(l));
 const auZone=l=>{const s=auSeed(l);if(s&&s.z)return s.z;const n=norm(l);return/rio tinto|gondomar|sao caetano|cabanas|soutelo/.test(n)?"rt":n};
@@ -943,9 +943,40 @@ const auKey=(d,h,l)=>d+"|"+(h||"")+"|"+norm(l);
 const auStart=d=>+d.slice(8)>=25?`${ymOf(d)}-25`:`${addMonths(ymOf(d),-1)}-25`;
 const auEnd=s=>`${addMonths(ymOf(s),1)}-24`;
 const auLabel=s=>{const e=auEnd(s);return`${+s.slice(8)} ${MES3[+s.slice(5,7)-1]} – ${+e.slice(8)} ${MES3[+e.slice(5,7)-1]}${e.slice(0,4)!==today().slice(0,4)?" "+e.slice(0,4):""}`};
-function auPer(s){const e=auEnd(s),td=today(),l=aulas().filter(t=>t.date>=s&&t.date<=e).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),on=l.filter(auOn);
+/* ===== horário fixo: as aulas aparecem planeadas e só contam quando marco "dada" =====
+   semanas A/B alternadas (26/10/2026 = semana A); só a partir de 16/11/2026 (o que vem antes já está registado à mão) */
+const AU_SC1="Escola Básica n.º 1 de São Caetano, Gondomar",AU_CAB="Escola Básica de Cabanas, Gondomar",AU_AS="Escola Básica de Alto de Soutelo, Gondomar",AU_RT="EB de Rio Tinto",
+  AU_MA="Colégio Marca d´Água",AU_LY="Lycée Français Porto",AU_UN="Externato da Misericórdia de Nossa Senhora do Rosário de Unhão";
+const AU_BASE="2026-10-26",AU_FROM="2026-11-16";
+const AU_HOR=[ /* [semana, dia (1=seg), início, fim, local, atividade, turma] */
+  ["A",1,"09:10","10:00",AU_SC1,"DigitALL","3.º F"],["A",1,"10:10","11:00",AU_SC1,"DigitALL","4.º E"],["A",1,"16:30","17:30",AU_UN,"Club 6-12","Turma A1"],
+  ["A",2,"09:10","10:00",AU_CAB,"DigitALL","3.º C"],["A",2,"10:10","11:00",AU_CAB,"DigitALL","3.º D"],["A",2,"11:30","12:20",AU_CAB,"DigitALL","4.º D"],
+  ["A",2,"16:00","16:45",AU_MA,"Club 5","Club-5 A2"],["A",2,"17:00","18:00",AU_MA,"Club 10-12","2.º ciclo"],
+  ["A",4,"09:10","10:00",AU_AS,"DigitALL","3.º A"],["A",4,"10:10","11:00",AU_AS,"DigitALL","3.º B"],
+  ["A",5,"12:40","13:40",AU_LY,"Club 6-12","Club-6to12 B1"],["A",5,"14:10","15:00",AU_RT,"DigitALL","5.º G"],["A",5,"15:10","16:00",AU_RT,"DigitALL","6.º F"],
+  ["B",1,"09:10","10:00",AU_SC1,"DigitALL","1.º D"],["B",1,"10:10","11:00",AU_SC1,"DigitALL","1.º E"],["B",1,"11:30","12:20",AU_SC1,"DigitALL","2.º E"],["B",1,"16:30","17:30",AU_UN,"Club 6-12","Turma B2"],
+  ["B",2,"09:10","10:00",AU_CAB,"DigitALL","1.º C"],["B",2,"10:10","11:00",AU_CAB,"DigitALL","2.º C"],["B",2,"11:30","12:20",AU_CAB,"DigitALL","4.º C"],
+  ["B",2,"16:00","16:45",AU_MA,"Club 5","Club-5 A2"],["B",2,"17:00","18:00",AU_MA,"Club 10-12","2.º ciclo"],
+  ["B",3,"09:10","10:00",AU_AS,"DigitALL","1.º B"],["B",3,"10:10","11:00",AU_AS,"DigitALL","2.º A"],["B",3,"11:30","12:20",AU_AS,"DigitALL","2.º B"],["B",3,"12:30","13:00",AU_RT,"DigitALL","5.º C"],
+  ["B",5,"12:40","13:40",AU_LY,"Club 6-12","Club-6to12 B1"],["B",5,"17:10","18:00",AU_RT,"DigitALL","6.º E"]];
+/* feriados nacionais e interrupções letivas 2026/27 (Natal, Carnaval, Páscoa) */
+const AU_HOL=new Set(["2026-12-01","2026-12-08","2026-12-25","2027-01-01","2027-03-26","2027-05-27","2027-06-10"]);
+const AU_BRK=[["2026-12-16","2026-12-31"],["2027-02-08","2027-02-10"],["2027-03-22","2027-04-02"]];
+const auOff=d=>AU_HOL.has(d)||AU_BRK.some(([a,b])=>d>=a&&d<=b);
+const auWeek=d=>{const t=new Date(d+"T12:00:00"),wd=(t.getDay()+6)%7,mon=addDays(d,-wd),n=Math.round((new Date(mon+"T12:00:00")-new Date(AU_BASE+"T12:00:00"))/6048e5);return{wd:wd+1,ab:((n%2)+2)%2?"B":"A"}};
+function auPlanned(s,e){const out=[],have=new Set(aulas().map(t=>auKey(t.date,t.time,t.place)));
+  for(let d=s>AU_FROM?s:AU_FROM;d<=e;d=addDays(d,1)){if(auOff(d))continue;const w=auWeek(d);
+    for(const[ab,wd,h,f,l,a,n]of AU_HOR)if(ab===w.ab&&wd===w.wd&&!have.has(auKey(d,h,l)))
+      out.push({id:`plan|${d}|${h}|${norm(l)}`,type:"aula",plan:true,date:d,time:h,to:f,place:l,cat:a,amt:1600,card:"",method:"plan",notes:n,acc:"",review:false,created:0})}
+  return out}
+const auPlanGet=id=>{const[,d]=id.split("|");return auPlanned(d,d).find(t=>t.id===id)};
+/* transporte: DigitALL = 1 por dia (qualquer escola); outros locais contam à parte */
+function auTrFor(t,ex){const z=auZoneOf(t.place,t.cat),seed=auSeed(t.place);
+  const has=aulas().some(x=>x.id!==ex&&x.date===t.date&&auOn(x)&&auZoneOf(x.place,x.cat)===z&&auT(x)>0);
+  if(has)return 0;const h=aulas().filter(x=>norm(x.place)===norm(t.place)&&auT(x)>0).sort((a,b)=>skey(b).localeCompare(skey(a)))[0];return h?auT(h):seed?seed.t:0}
+function auPer(s){const e=auEnd(s),td=today(),pl=auPlanned(s,e),l=[...aulas().filter(t=>t.date>=s&&t.date<=e),...pl].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)),on=l.filter(auOn);
   const v=on.reduce((x,t)=>x+t.amt,0),tr=on.reduce((x,t)=>x+auT(t),0),done=on.filter(t=>t.date<=td).reduce((x,t)=>x+t.amt+auT(t),0);
-  return{s,e,l,on,v,tr,tot:v+tr,done,later:v+tr-done,off:l.length-on.length}}
+  return{s,e,l,on,v,tr,tot:v+tr,done,later:v+tr-done,off:l.length-on.length-pl.length,pl,pv:pl.reduce((x,t)=>x+t.amt,0),due:pl.filter(t=>t.date<=td).length}}
 const auCfg=()=>S.config.inventors||{};
 const auPaid=s=>(auCfg().paid||{})[s];
 function saveAuCfg(c){send({a:"config",config:{...S.config,inventors:{...auCfg(),...c}}})}
@@ -971,7 +1002,11 @@ function auApply(f){const s=auSuggest(f.place,f.date,f.id);f.act=s.act||f.act;f.
   f.hint=s.trDone?"🚌 O transporte de hoje nesta zona já está noutra aula.":""}
 
 /* ===== ecrã ===== */
-function auRow(t){const on=auOn(t),tr=auT(t);
+function auRow(t){if(t.plan){const past=t.date<=today();
+  return`<div class="row au" style="opacity:${past?1:.75};border-style:dashed" role="button" tabindex="0" data-act="auedit" data-id="${esc(t.id)}"><span class="ic">${auIcon(t.cat)}</span><span style="min-width:0"><span class="t1">${esc(t.cat||"Aula")} · ${esc(auShort(t.place))}</span>
+  <span class="t2">${esc(t.time)}–${esc(t.to)} · ${esc(t.notes||"")} · ${past?"⏳ POR CONFIRMAR":"📅 PLANEADA"}</span></span>
+  <span style="display:grid;gap:6px;justify-items:end"><span class="amt" style="opacity:.6">${fmt(t.amt)}</span><span style="display:flex;gap:6px"><button class="btn small alt" data-act="auplan" data-k="0" data-id="${esc(t.id)}" aria-label="Não dei">✗</button><button class="btn small green" data-act="auplan" data-k="1" data-id="${esc(t.id)}">✓ DADA</button></span></span></div>`}
+  const on=auOn(t),tr=auT(t);
   return`<div class="row au${on?"":" off"}" role="button" tabindex="0" data-act="auedit" data-id="${esc(t.id)}"><span class="ic">${auIcon(t.cat)}</span><span style="min-width:0"><span class="t1">${esc(t.cat||"Aula")} · ${esc(auShort(t.place))}</span>
   <span class="t2">${esc(t.time||"")}${t.to?"–"+esc(t.to):""}${tr?` · 🚌 +${fmt(tr)}`:""}${on?"":" · NÃO CONTA"}</span>${t.notes?`<span class="t3">📝 ${esc(t.notes)}</span>`:""}</span>
   <span style="display:grid;gap:6px;justify-items:end"><span class="amt ${on?"up":""}"${on?"":' style="text-decoration:line-through"'}>${fmt(t.amt)}</span><button class="btn small ${on?"alt":""}" data-act="autog" data-id="${esc(t.id)}">${on?"✓ CONTA":"✗ NÃO"}</button></span></div>`}
@@ -984,7 +1019,7 @@ function vAulas(){const s=S.invP||auStart(today()),p=auPer(s),pd=auPaid(s),em=ME
   <div class="board autop"><span class="px">${pd?"✓ PAGO PELOS INVENTORS":"🤖 VAIS RECEBER DOS INVENTORS"}</span><b class="bigv up">${fmt(pd?pd.amt:p.tot)}</b>
     <div class="mon"><div><span>AULAS</span><b>${p.on.length}</b></div><div><span>AULAS €</span><b class="up">${fmt0(p.v)}</b></div><div><span>TRANSPORTE</span><b class="up">${fmt(p.tr)}</b></div></div>
     <div class="note" style="margin:8px 0 0">${pd?`Entrou a ${dn(pd.date)} na ${esc(accName(pd.acc))}.${diff?` ⚠️ As aulas agora somam ${fmt(p.tot)} (${diff>0?"+":"−"}${fmt(Math.abs(diff))} do que entrou).`:""}`
-      :`${p.later>0?`Já dado ${fmt(p.done)} · ainda por dar ${fmt(p.later)}. `:""}Pagam no fim de ${esc(em)} e entra na Revolut.`}${p.off?` ${p.off} aula${p.off>1?"s":""} fora do total.`:""}</div></div>
+      :`${p.later>0?`Já dado ${fmt(p.done)} · ainda por dar ${fmt(p.later)}. `:""}Pagam no fim de ${esc(em)} e entra na Revolut.`}${p.off?` ${p.off} aula${p.off>1?"s":""} fora do total.`:""}${p.pl.length?`<br>📅 ${p.pl.length} planeada${p.pl.length>1?"s":""} (mais ${fmt0(p.pv)} se as deres)${p.due?` · <b>⏳ ${p.due} por confirmar</b>`:""}.`:""}</div></div>
   <div class="tools"><button class="btn" data-act="auadd">+ AULA</button><button class="btn alt" data-act="auimp">📋 COLAR LISTA</button></div>
   ${p.on.length?pd?`<button class="btn alt" style="width:100%;margin-top:8px" data-act="auunpay">${S.auArm===s?"TOCA OUTRA VEZ PARA DESMARCAR":"↩ DESMARCAR PAGO"}</button>`
     :`<button class="btn green" style="width:100%;margin-top:8px" data-act="aupay">💰 OS INVENTORS PAGARAM</button>`:""}
@@ -1088,8 +1123,15 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if
   if(a!=="auunpay"&&S.auArm){S.auArm=null}
   if(a==="auprev"||a==="aunext"){const s=S.invP||auStart(today());S.invP=`${addMonths(ymOf(s),a==="auprev"?-1:1)}-25`;render()}
   else if(a==="auadd"){if(!S.ready)return;const s=S.invP||auStart(today()),td=today();S.au=auNew(td>=s&&td<=auEnd(s)?td:s,"");auForm()}
+  else if(a==="auplan"){e.stopPropagation();const v=auPlanGet(el.dataset.id);if(!v)return;const ok=el.dataset.k==="1";
+    const t={...v,id:genId("au"),plan:false,method:ok?"":"nao",created:Date.now()};t.card=ok?((x=>x?String(x/100):"")(auTrFor(t))):"";
+    send({a:"put",row:toRow(t)});if(ok){coinSnd();pop(e,"+"+fmt(t.amt+auT(t)))}else outSnd();toast(ok?"✓ AULA DADA":"✗ NÃO DESTE · FICA REGISTADA")}
+  else if(a==="auedit"&&String(el.dataset.id).startsWith("plan|")){const v=auPlanGet(el.dataset.id);if(!v)return;S.au={id:null,date:v.date,time:v.time,end:v.to,place:v.place,act:v.cat,amt:v.amt,tr:auTrFor(v),on:true,note:v.notes||""};auForm()}
   else if(a==="auedit"){const t=S.tx.get(el.dataset.id);if(!t)return;S.au={id:t.id,date:t.date,time:t.time||"",end:t.to||"",place:t.place,act:t.cat,amt:t.amt,tr:auT(t),on:auOn(t),note:t.notes||""};auForm()}
-  else if(a==="autog"){e.stopPropagation();const t=S.tx.get(el.dataset.id);if(!t)return;const on=!auOn(t);send({a:"put",row:toRow({...t,method:on?"":"nao"})});on?coinSnd():outSnd();toast(on?"✓ CONTA PARA O TOTAL":"✗ FICA FORA DO TOTAL")}
+  else if(a==="autog"){e.stopPropagation();const t=S.tx.get(el.dataset.id);if(!t)return;const on=!auOn(t),tr=auT(t),z=auZoneOf(t.place,t.cat);
+    if(on){const nt=auTrFor({...t},t.id);send({a:"put",row:toRow({...t,method:"",card:nt?String(nt/100):""})})}
+    else{send({a:"put",row:toRow({...t,method:"nao",card:""})});
+      if(tr){const o=aulas().find(x=>x.id!==t.id&&x.date===t.date&&auOn(x)&&auZoneOf(x.place,x.cat)===z&&!auT(x));if(o)send({a:"put",row:toRow({...o,card:String(tr/100)})})}}on?coinSnd():outSnd();toast(on?"✓ CONTA PARA O TOTAL":"✗ FICA FORA DO TOTAL")}
   else if(a==="aupick"){auRead();const f=S.au,k=el.dataset.k,v=el.dataset.v;
     if(k==="on")f.on=v==="1";else if(k==="place"){f.place=v;$("#au_l").value="";if(!f.id)auApply(f)}else if(k==="act"){f.act=v;$("#au_a").value=""}auForm()}
   else if(a==="ausave")auSave(!!el.dataset.more,e);
